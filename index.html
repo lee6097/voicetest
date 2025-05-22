@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>음성 인식 & 합성 테스트</title>
+</head>
+<body>
+  <h1>🎤 음성 인식 테스트</h1>
+
+  <button onclick="startRecognition()">음성 인식 시작</button>
+  <p id="output">여기에 인식된 텍스트가 표시됩니다.</p>
+
+  <h2>🗣️ 음성 합성 테스트</h2>
+  <input type="text" id="textToSpeak" placeholder="여기에 말할 내용을 입력하세요" size="40">
+  <button onclick="speakText()">말하기</button>
+
+  <script>
+    // 음성 인식
+    const output = document.getElementById('output');
+    const recognition = new webkitSpeechRecognition(); // 크롬에서만 작동
+
+    recognition.lang = 'ko-KR'; // 한국어
+    recognition.interimResults = false;
+    recognition.maxAlternatives = 1;
+
+    function startRecognition() {
+      recognition.start();
+    }
+
+    recognition.onresult = function(event) {
+      const transcript = event.results[0][0].transcript;
+      output.textContent = '인식된 내용: ' + transcript;
+    };
+
+    recognition.onerror = function(event) {
+      output.textContent = '오류 발생: ' + event.error;
+    };
+
+    // 음성 합성
+    function speakText() {
+      const text = document.getElementById('textToSpeak').value;
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.lang = 'ko-KR';
+      speechSynthesis.speak(utterance);
+    }
+  </script>
+</body>
+</html>
