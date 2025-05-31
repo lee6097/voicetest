@@ -1,48 +1,306 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-  <meta charset="UTF-8">
-  <title>음성 인식 & 합성 테스트</title>
+  <meta charset="UTF-8" />
+  <title>톡톡케어</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      font-family: 'Arial', sans-serif;
+      background: #f5f5f5;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    #chatbox {
+      width: 100%;
+      max-width: 600px;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      background: white;
+      padding: 20px;
+      box-sizing: border-box;
+      border-radius: 0;
+      box-shadow: none;
+    }
+
+    #chat {
+      display: flex;
+      flex-direction: column;
+      overflow-y: auto;
+      flex-grow: 1;
+      margin-bottom: 10px;
+    }
+
+    .bubble-container {
+      display: flex;
+      align-items: flex-end;
+      margin: 8px 0;
+    }
+
+    .bubble {
+      padding: 10px 14px;
+      border-radius: 10px;
+      max-width: 80%;
+      word-wrap: break-word;
+    }
+
+    .user {
+      background: #d1e7ff;
+      align-self: flex-end;
+      margin-left: auto;
+    }
+
+    .ai {
+      background: #eee;
+      align-self: flex-start;
+      margin-right: auto;
+    }
+
+    #inputForm {
+      display: flex;
+      gap: 10px;
+    }
+
+    #userInput {
+      flex: 1;
+      padding: 8px 10px;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      font-size: 0.9em;
+      font-family: 'Arial', sans-serif;
+      line-height: 1.4;
+      resize: none;
+      overflow-y: auto;
+      min-height: 20px;
+      max-height: 60px;
+      height: auto;
+    }
+
+    @media (max-width: 768px) {
+      #userInput {
+        min-height: 40px;
+        max-height: 75px;
+      }
+    }
+
+    button {
+      padding: 8px 12px;
+      border: none;
+      border-radius: 8px;
+      background: #0078d7;
+      color: white;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background: #005fa3;
+    }
+
+    .reset-btn {
+      background: #888;
+    }
+
+    .reset-btn:hover {
+      background: #666;
+    }
+
+    .copy-btn {
+      font-size: 10px;
+      padding: 2px 6px;
+      background: transparent;
+      color: #666;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      cursor: pointer;
+      height: 22px;
+      margin: 0 4px;
+      flex-shrink: 0;
+    }
+
+    .copy-btn:hover {
+      background: #eee;
+    }
+
+    .user-container {
+      justify-content: flex-end;
+    }
+
+    .ai-container {
+      justify-content: flex-start;
+    }
+
+    .allcopy-btn {
+      margin-top: 10px;
+    }
+  </style>
 </head>
 <body>
-  <h1>🎤 음성 인식 테스트</h1>
-
-  <button onclick="startRecognition()">음성 인식 시작</button>
-  <p id="output">여기에 인식된 텍스트가 표시됩니다.</p>
-
-  <h2>🗣️ 음성 합성 테스트</h2>
-  <input type="text" id="textToSpeak" placeholder="여기에 말할 내용을 입력하세요" size="40">
-  <button onclick="speakText()">말하기</button>
+  <div id="chatbox">
+    <div id="chat"></div>
+    <form id="inputForm">
+      <textarea id="userInput" rows="1" enterkeyhint="newline"></textarea>
+      <button type="submit">보내기</button>
+    </form>
+    <button class="reset-btn" onclick="location.reload()">🔄 대화 초기화</button>
+    <button class="allcopy-btn" onclick="copyAll()">📝 전체 복사</button>
+  </div>
 
   <script>
-    // 음성 인식
-    const output = document.getElementById('output');
-    const recognition = new webkitSpeechRecognition(); // 크롬에서만 작동
+    const chat = document.getElementById('chat');
+    const form = document.getElementById('inputForm');
+    const userInput = document.getElementById('userInput');
 
-    recognition.lang = 'ko-KR'; // 한국어
-    recognition.interimResults = false;
-    recognition.maxAlternatives = 1;
+    const messages = [
+      { role: "system", content: "너는 ..(생략)." }
+    ];
 
-    function startRecognition() {
-      recognition.start();
-    }
+    // 🟢 초기 상담사 메시지 표시
+    window.addEventListener('DOMContentLoaded', () => {
+      const welcome = "안녕하세요, 똑똑한 AI 건강 상담사 톡톡케어입니다. 현재 가장 불편한 증상 또는 궁금한 건강지식을 입력해주세요.";
+      appendBubble(welcome, 'ai');
+    });
 
-    recognition.onresult = function(event) {
-      const transcript = event.results[0][0].transcript;
-      output.textContent = '인식된 내용: ' + transcript;
+    form.onsubmit = async (e) => {
+      e.preventDefault();
+      const text = userInput.value.trim();
+      if (!text) return;
+
+      appendBubble(text, 'user');
+      messages.push({ role: 'user', content: text });
+      userInput.value = '';
+      userInput.disabled = true;
+
+      appendBubble('⏳ 답변 작성 중... 최대 1분까지 소요될 수 있습니다.', 'ai');
+
+      try {
+        const res = await fetch('https://talktalkcare-server.onrender.com/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ messages })
+        });
+
+        const data = await res.json();
+        removeLastBubble();
+        messages.push({ role: 'assistant', content: data.reply });
+        appendBubble(data.reply, 'ai');
+      } catch (err) {
+        removeLastBubble();
+        appendBubble('⚠️ 오류가 발생했어요. 다시 시도해 주세요.', 'ai');
+      } finally {
+        userInput.disabled = false;
+        userInput.focus();
+      }
     };
 
-    recognition.onerror = function(event) {
-      output.textContent = '오류 발생: ' + event.error;
-    };
-
-    // 음성 합성
-    function speakText() {
-      const text = document.getElementById('textToSpeak').value;
-      const utterance = new SpeechSynthesisUtterance(text);
-      utterance.lang = 'ko-KR';
-      speechSynthesis.speak(utterance);
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.appendChild(document.createTextNode(text));
+      return div.innerHTML.replace(/\n/g, "<br>");
     }
+
+    function appendBubble(text, sender) {
+      const container = document.createElement('div');
+      container.className = `bubble-container ${sender}-container`;
+
+      const bubble = document.createElement('div');
+      bubble.className = `bubble ${sender}`;
+      bubble.innerHTML = escapeHtml(text);
+
+      const copyBtn = document.createElement('button');
+      copyBtn.className = 'copy-btn';
+      copyBtn.textContent = '📋 복사';
+      copyBtn.onclick = () => copyToClipboard(text);
+
+      if (sender === 'user') {
+        container.appendChild(bubble);
+      } else {
+        container.appendChild(bubble);
+        container.appendChild(copyBtn);
+      }
+
+      chat.appendChild(container);
+      chat.scrollTop = chat.scrollHeight;
+    }
+
+    function removeLastBubble() {
+      const last = chat.lastElementChild;
+      if (last) chat.removeChild(last);
+    }
+
+    function copyToClipboard(text) {
+      const temp = document.createElement('textarea');
+      temp.value = text;
+      document.body.appendChild(temp);
+      temp.select();
+      document.execCommand('copy');
+      document.body.removeChild(temp);
+    }
+
+    function copyAll() {
+      let allMessages = '';
+      const containers = document.getElementsByClassName('bubble-container');
+
+      for (let container of containers) {
+        const bubble = container.querySelector('.bubble');
+        if (!bubble) continue;
+
+        const isUser = bubble.classList.contains('user');
+        const label = isUser ? '사용자' : '톡톡케어';
+        const text = bubble.innerText.trim();
+
+        allMessages += `${label}: ${text}\n\n`;
+      }
+
+      copyToClipboard(allMessages.trim());
+    }
+  </script>
+
+  <!-- 관리자 통계 버튼 -->
+  <button onclick="openAdmin()" style="display:none;" id="adminBtn">📊 관리자 페이지</button>
+  <script>
+    async function openAdmin() {
+      const password = prompt("🔐 관리자 비밀번호를 입력하세요");
+      const res = await fetch(`https://talktalkcare-server.onrender.com/admin?password=${encodeURIComponent(password)}`);
+      if (res.ok) {
+        const data = await res.json();
+        alert(`📊 페이지 조회수: ${data.pageViews}\n💬 메시지 수: ${data.messageCount}`);
+      } else {
+        alert('❌ 비밀번호가 틀렸습니다.');
+      }
+    }
+  </script>
+
+  <script>
+    fetch('https://talktalkcare-server.onrender.com/view');
+  </script>
+
+  <!-- 자동 높이 조절 -->
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const isMobile = /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent);
+      userInput.addEventListener('keydown', function (e) {
+        if (!isMobile && e.key === 'Enter' && !e.shiftKey) {
+          e.preventDefault();
+          form.dispatchEvent(new Event('submit'));
+        }
+      });
+
+      userInput.addEventListener('input', () => {
+        userInput.style.height = 'auto';
+        const computed = window.getComputedStyle(userInput);
+        const maxHeight = parseFloat(computed.maxHeight);
+        const newHeight = Math.min(userInput.scrollHeight, maxHeight);
+        userInput.style.height = newHeight + 'px';
+        userInput.style.overflowY = userInput.scrollHeight > maxHeight ? 'auto' : 'hidden';
+      });
+    });
   </script>
 </body>
 </html>
