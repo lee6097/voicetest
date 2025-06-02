@@ -35,20 +35,15 @@
     }
     .bubble-container {
       display: flex;
-      gap: 8px;
-      /* 기존에 있던 align-items: flex-start 삭제하거나 주석 처리 */
-      /* align-items: flex-start; */
-      align-items: stretch; /* stretch로 바꾸거나 아예 빼도 됨 */
+      align-items: flex-start; /* 음성/복사 버튼 위아래로 정렬할 때 top 정렬이 자연스러움 */
+      margin: 8px 0;
+      gap: 8px; /* 말풍선과 버튼 그룹 간 간격 */
     }
-
     .bubble {
       padding: 10px 14px;
       border-radius: 10px;
       max-width: 80%;
       word-wrap: break-word;
-      display: flex;
-      flex-direction: column;
-      justify-content: flex-start; /* 메시지 텍스트 위쪽 정렬 유지 */
     }
     .user {
       background: #d1e7ff;
@@ -144,10 +139,7 @@
     .button-column {
       display: flex;
       flex-direction: column;
-      gap: 6px;
-      width: 70px;         /* 버튼 열 폭 넓힘 */
-      margin-top: auto;    /* 말풍선과 버튼열 사이의 공간을 벌려서 버튼을 아래쪽으로 붙임 */
-      align-items: center; /* 버튼들 가운데 정렬 */
+      gap: 6px; /* 버튼들 사이 간격 */
     }
   </style>
 </head>
@@ -220,10 +212,10 @@
 
     function appendBubble(text, sender) {
       const container = document.createElement('div');
-      container.className = `bubble-container ${sender}-container`;
+      container.className = bubble-container ${sender}-container;
 
       const bubble = document.createElement('div');
-      bubble.className = `bubble ${sender}`;
+      bubble.className = bubble ${sender};
       bubble.innerHTML = escapeHtml(text);
 
       const copyBtn = document.createElement('button');
@@ -343,7 +335,7 @@
         const label = isUser ? '사용자' : '톡톡케어';
         const text = bubble.innerText.trim();
 
-        allMessages += `${label}: ${text}\n\n`;
+        allMessages += ${label}: ${text}\n\n;
       }
 
       copyToClipboard(allMessages.trim());
