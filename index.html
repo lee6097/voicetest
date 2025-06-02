@@ -34,9 +34,10 @@
       margin-bottom: 10px;
     }
     .bubble-container {
-      display: flex;
+      display: inline-flex; /* ✅ block → inline-block처럼 동작 */
       align-items: flex-end;
       margin: 8px 0;
+      max-width: 90%;
     }
     .bubble {
       padding: 10px 14px;
