@@ -378,6 +378,12 @@
 
       let isListening = false;
       let userStopped = false;  // 사용자가 수동으로 중지했는지 여부
+      let finalTranscript = '';
+
+      recognition.continuous = true;         // ✅ 끊김 없는 연속 인식
+      recognition.interimResults = true;     // ✅ 중간 결과도 보여줌
+
+      const sendBtn = document.querySelector('#sendBtn'); // 보내기 버튼 요소
 
       micBtn.addEventListener('click', () => {
         if (!recognition) return;
@@ -390,24 +396,28 @@
 
         userStopped = false;
         isListening = true;
+        finalTranscript = '';  // 누적 텍스트 초기화
         micBtn.disabled = false;
         micBtn.textContent = '⏹️';
         userInput.value = "🗣️ 음성을 입력하세요...";
         userInput.classList.add('listening');
         userInput.disabled = true;
+        sendBtn.disabled = true; // ✅ 보내기 버튼 비활성화
         recognition.start();
       });
 
       recognition.addEventListener('result', (event) => {
-        let transcript = '';
+        let interimTranscript = '';
         for (let i = event.resultIndex; i < event.results.length; ++i) {
-          transcript += event.results[i][0].transcript;
+          const result = event.results[i];
+          if (result.isFinal) {
+            finalTranscript += result[0].transcript;
+          } else {
+            interimTranscript += result[0].transcript;
+          }
         }
-        userInput.value = transcript;
 
-        if (event.results[event.results.length - 1].isFinal) {
-          // 여기서는 전송하지 않고 사용자가 멈추거나 충분한 발화 후에 전송
-        }
+        userInput.value = finalTranscript + interimTranscript;
       });
 
       recognition.addEventListener('end', () => {
@@ -418,6 +428,7 @@
           micBtn.textContent = '🎤';
           userInput.classList.remove('listening');
           userInput.disabled = false;
+          sendBtn.disabled = false; // ✅ 다시 보내기 버튼 활성화
 
           if (userInput.value.trim() && userInput.value !== "🗣️ 음성을 입력하세요...") {
             form.dispatchEvent(new Event('submit'));
@@ -425,10 +436,11 @@
             userInput.value = '';
           }
         } else {
-          // 🔁 자동 재시작
+          // 🔁 음성 입력이 끊겨도 자동 재시작으로 이어지게 함
           recognition.start();
         }
       });
+
 
 
     } else {
