@@ -229,7 +229,7 @@
       const speakBtn = document.createElement('button');
       speakBtn.className = 'copy-btn';
       speakBtn.textContent = '📢 음성';
-      speakBtn.onclick = () => speakText(text);
+      speakBtn.onclick = () => speakText(text, speakBtn);
 
       const btnColumn = document.createElement('div');
       btnColumn.className = 'button-column';
@@ -261,31 +261,43 @@
       document.body.removeChild(temp);
     }
 
-    function speakText(rawText) {
+    function speakText(rawText, button) {
       if (!('speechSynthesis' in window)) {
         alert('🔈 음성 합성을 지원하지 않는 브라우저입니다.');
         return;
       }
 
-      // 1. 괄호 제거, *, #, - 제거 (기존 유지)
+      // 기존 음성 중지
+      window.speechSynthesis.cancel();
+
       let cleaned = rawText
-        .replace(/\([^)]*\)/g, '') // 괄호 제거
-        .replace(/[*#\-]/g, '') // *, #, - 제거
+        .replace(/\([^)]*\)/g, '')
+        .replace(/[*#\-]/g, '')
         .trim();
 
-      // 2. 줄바꿈, 마침표, 느낌표, 물음표 기준으로 문장 쪼개기
-      //    줄바꿈 1개 이상 또는 문장부호+공백/줄바꿈 기준
       const sentences = cleaned.split(/[\.\!\?]+[\s\n]+|\n+/).filter(s => s.trim().length > 0);
-
       if (sentences.length === 0) return;
 
-      window.speechSynthesis.cancel(); // 기존 음성 취소
-
-      // 3. 문장별로 차례대로 읽기 위해 재귀 함수 사용
       let index = 0;
+      let isStopped = false;
+
+      // 버튼을 중지 버튼으로 변경
+      button.textContent = '⏹️ 중지';
+      button.onclick = () => {
+        window.speechSynthesis.cancel();
+        isStopped = true;
+        button.textContent = '📢 음성';
+        button.onclick = () => speakText(rawText, button);
+      };
 
       function speakNext() {
-        if (index >= sentences.length) return;
+        if (index >= sentences.length || isStopped) {
+          // 완료 후 버튼 되돌리기
+          button.textContent = '📢 음성';
+          button.onclick = () => speakText(rawText, button);
+          return;
+        }
+
         const utterance = new SpeechSynthesisUtterance(sentences[index].trim());
         utterance.lang = 'ko-KR';
         utterance.onend = () => {
@@ -297,6 +309,7 @@
 
       speakNext();
     }
+
 
     window.addEventListener('beforeunload', () => {
       window.speechSynthesis.cancel();
