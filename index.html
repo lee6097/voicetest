@@ -367,43 +367,51 @@
       copyToClipboard(allMessages.trim());
     }
 
+
     // 🎤 음성 인식
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     const recognition = SpeechRecognition ? new SpeechRecognition() : null;
 
-    if (recognition) {
+    const micBtn = document.querySelector('#micBtn');
+    const userInput = document.querySelector('#userInput');
+    const sendBtn = document.querySelector('#sendBtn');
+    const form = document.querySelector('form');
+  
+    if (recognition && micBtn && userInput && sendBtn && form) {
       recognition.lang = 'ko-KR';
-      recognition.interimResults = true;
+      recognition.continuous = true;         // 연속 인식
+      recognition.interimResults = true;     // 중간 결과 표시
       recognition.maxAlternatives = 1;
 
       let isListening = false;
-      let userStopped = false;  // 사용자가 수동으로 중지했는지 여부
+      let userStopped = false;
       let finalTranscript = '';
 
-      recognition.continuous = true;         // ✅ 끊김 없는 연속 인식
-      recognition.interimResults = true;     // ✅ 중간 결과도 보여줌
-
-      const sendBtn = document.querySelector('#sendBtn'); // 보내기 버튼 요소
-
       micBtn.addEventListener('click', () => {
-        if (!recognition) return;
-
         if (isListening) {
+          // ⏹️ 중지 요청
           userStopped = true;
           recognition.stop();
           return;
         }
 
+        // 🎤 시작
         userStopped = false;
         isListening = true;
-        finalTranscript = '';  // 누적 텍스트 초기화
-        micBtn.disabled = false;
+        finalTranscript = '';
+
         micBtn.textContent = '⏹️';
+        micBtn.disabled = false;
         userInput.value = "🗣️ 음성을 입력하세요...";
         userInput.classList.add('listening');
         userInput.disabled = true;
-        sendBtn.disabled = true; // ✅ 보내기 버튼 비활성화
-        recognition.start();
+        sendBtn.disabled = true;
+
+        try {
+          recognition.start();
+        } catch (e) {
+          console.error('음성 인식 시작 실패:', e);
+        }
       });
 
       recognition.addEventListener('result', (event) => {
@@ -416,7 +424,6 @@
             interimTranscript += result[0].transcript;
           }
         }
-
         userInput.value = finalTranscript + interimTranscript;
       });
 
@@ -424,30 +431,51 @@
         if (!isListening) return;
 
         if (userStopped) {
+          // 사용자가 명시적으로 중지한 경우
           isListening = false;
           micBtn.textContent = '🎤';
           userInput.classList.remove('listening');
           userInput.disabled = false;
-          sendBtn.disabled = false; // ✅ 다시 보내기 버튼 활성화
+          sendBtn.disabled = false;
 
-          if (userInput.value.trim() && userInput.value !== "🗣️ 음성을 입력하세요...") {
+          if (
+            userInput.value.trim() &&
+            userInput.value !== "🗣️ 음성을 입력하세요..."
+          ) {
             form.dispatchEvent(new Event('submit'));
           } else {
             userInput.value = '';
           }
         } else {
-          // 🔁 음성 입력이 끊겨도 자동 재시작으로 이어지게 함
-          recognition.start();
+          // 자동 재시작 (지연 추가)
+          setTimeout(() => {
+            try {
+              recognition.start();
+            } catch (e) {
+              console.error('자동 재시작 실패:', e);
+            }
+          }, 300); // 너무 빠르면 Chrome이 무시함
         }
       });
 
-
+      recognition.addEventListener('error', (e) => {
+        console.error('🎤 음성 인식 오류:', e.error);
+        isListening = false;
+        micBtn.textContent = '🎤';
+        userInput.classList.remove('listening');
+        userInput.disabled = false;
+        sendBtn.disabled = false;
+      });
 
     } else {
-      micBtn.disabled = true;
-      micBtn.title = "브라우저에서 음성 인식을 지원하지 않습니다";
+      if (micBtn) {
+        micBtn.disabled = true;
+        micBtn.title = "브라우저에서 음성 인식을 지원하지 않습니다";
+      }
+      console.warn("음성 인식을 초기화할 수 없습니다. 필수 요소 또는 브라우저 지원을 확인하세요.");
     }
   </script>
+
 
   <!-- 관리자 -->
   <button onclick="openAdmin()" style="display:none;" id="adminBtn">📊 관리자 페이지</button>
