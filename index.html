@@ -249,22 +249,42 @@
     }
 
     function speakText(rawText) {
-      if (!'speechSynthesis' in window) {
+      if (!('speechSynthesis' in window)) {
         alert('🔈 음성 합성을 지원하지 않는 브라우저입니다.');
         return;
       }
 
-      const cleaned = rawText
+      // 1. 괄호 제거, *, #, - 제거 (기존 유지)
+      let cleaned = rawText
         .replace(/\([^)]*\)/g, '') // 괄호 제거
         .replace(/[*#\-]/g, '') // *, #, - 제거
-        .replace(/\s+/g, ' ') // 공백 정리
         .trim();
 
-      const utterance = new SpeechSynthesisUtterance(cleaned);
-      utterance.lang = 'ko-KR';
-      window.speechSynthesis.cancel(); // 기존 음성 정지
-      window.speechSynthesis.speak(utterance);
+      // 2. 줄바꿈, 마침표, 느낌표, 물음표 기준으로 문장 쪼개기
+      //    줄바꿈 1개 이상 또는 문장부호+공백/줄바꿈 기준
+      const sentences = cleaned.split(/[\.\!\?]+[\s\n]+|\n+/).filter(s => s.trim().length > 0);
+
+      if (sentences.length === 0) return;
+
+      window.speechSynthesis.cancel(); // 기존 음성 취소
+
+      // 3. 문장별로 차례대로 읽기 위해 재귀 함수 사용
+      let index = 0;
+
+      function speakNext() {
+        if (index >= sentences.length) return;
+        const utterance = new SpeechSynthesisUtterance(sentences[index].trim());
+        utterance.lang = 'ko-KR';
+        utterance.onend = () => {
+          index++;
+          speakNext();
+        };
+        window.speechSynthesis.speak(utterance);
+      }
+
+      speakNext();
     }
+
 
     function copyAll() {
       let allMessages = '';
