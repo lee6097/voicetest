@@ -261,43 +261,70 @@
       document.body.removeChild(temp);
     }
 
+    let utterance = null;
+    let isSpeaking = false;
+
     function speakText(rawText) {
       if (!('speechSynthesis' in window)) {
         alert('🔈 음성 합성을 지원하지 않는 브라우저입니다.');
         return;
       }
 
-      // 1. 괄호 제거, *, #, - 제거 (기존 유지)
-      let cleaned = rawText
-        .replace(/\([^)]*\)/g, '') // 괄호 제거
-        .replace(/[*#\-]/g, '') // *, #, - 제거
-        .trim();
-
-      // 2. 줄바꿈, 마침표, 느낌표, 물음표 기준으로 문장 쪼개기
-      //    줄바꿈 1개 이상 또는 문장부호+공백/줄바꿈 기준
-      const sentences = cleaned.split(/[\.\!\?]+[\s\n]+|\n+/).filter(s => s.trim().length > 0);
-
-      if (sentences.length === 0) return;
-
-      window.speechSynthesis.cancel(); // 기존 음성 취소
-
-      // 3. 문장별로 차례대로 읽기 위해 재귀 함수 사용
-      let index = 0;
-
-      function speakNext() {
-        if (index >= sentences.length) return;
-        const utterance = new SpeechSynthesisUtterance(sentences[index].trim());
-        utterance.lang = 'ko-KR';
-        utterance.onend = () => {
-          index++;
-          speakNext();
-        };
-        window.speechSynthesis.speak(utterance);
+      // 이미 말하고 있으면 중지 처리
+      if (isSpeaking) {
+        window.speechSynthesis.cancel();
+        resetMicBtn();
+        return;
       }
 
-      speakNext();
+      let cleaned = rawText
+        .replace(/\([^)]*\)/g, '') 
+        .replace(/[*#\-]/g, '') 
+        .trim();
+
+      const sentences = cleaned.split(/[\.\!\?]+[\s\n]+|\n+/).filter(s => s.trim().length > 0);
+      if (sentences.length === 0) return;
+
+      utterance = new SpeechSynthesisUtterance();
+      utterance.lang = 'ko-KR';
+
+      let index = 0;
+      isSpeaking = true;
+      setMicBtnSpeaking(true);
+
+      utterance.text = sentences[index];
+      utterance.onend = () => {
+        index++;
+        if (index < sentences.length) {
+          utterance.text = sentences[index];
+          window.speechSynthesis.speak(utterance);
+        } else {
+          isSpeaking = false;
+          setMicBtnSpeaking(false);
+        }
+      };
+
+      window.speechSynthesis.speak(utterance);
     }
 
+    function setMicBtnSpeaking(speaking) {
+      const btns = document.querySelectorAll('.copy-btn');
+      btns.forEach(btn => {
+        if (btn.textContent === '📢 음성') {
+          btn.textContent = speaking ? '■ 중지' : '📢 음성';
+        }
+      });
+    }
+
+    function resetMicBtn() {
+      isSpeaking = false;
+      setMicBtnSpeaking(false);
+    }
+
+    // 페이지 닫힐 때 음성 중지
+    window.addEventListener('beforeunload', () => {
+      window.speechSynthesis.cancel();
+    });
 
     function copyAll() {
       let allMessages = '';
