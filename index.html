@@ -376,12 +376,24 @@
       recognition.interimResults = true;
       recognition.maxAlternatives = 1;
 
+      let isListening = false;
+
       micBtn.addEventListener('click', () => {
-        micBtn.disabled = true;
-        micBtn.textContent = '🎙️';
+        if (!recognition) return;
+
+        // 🎤 시작 → 중지 요청
+        if (isListening) {
+          recognition.stop(); // 인식 종료 → 아래의 'end' 이벤트에서 처리됨
+          return;
+        }
+
+        // 🎤 음성 인식 시작
+        isListening = true;
+        micBtn.disabled = false;
+        micBtn.textContent = '⏹️';
         userInput.value = "🗣️ 음성을 입력하세요...";
-        userInput.classList.add('listening');  // ✅ 깜빡임 시작
-        userInput.disabled = true; // ✅ 입력창 비활성화
+        userInput.classList.add('listening');
+        userInput.disabled = true;
         recognition.start();
       });
 
@@ -393,16 +405,22 @@
         userInput.value = transcript;
 
         if (event.results[event.results.length - 1].isFinal) {
+          // 결과가 확정되었을 때도 submit 처리 (여기서 stop 호출 X)
           form.dispatchEvent(new Event('submit'));
         }
       });
 
       recognition.addEventListener('end', () => {
+        // 종료 시 상태 리셋 및 제출 처리
         micBtn.disabled = false;
         micBtn.textContent = '🎤';
-        userInput.classList.remove('listening');  // ✅ 깜빡임 종료
-        userInput.disabled = false; // ✅ 입력창 다시 활성화
-        if (userInput.value.trim() === "🗣️ 음성을 입력하세요...") {
+        userInput.classList.remove('listening');
+        userInput.disabled = false;
+        isListening = false;
+
+        if (userInput.value.trim() && userInput.value !== "🗣️ 음성을 입력하세요...") {
+          form.dispatchEvent(new Event('submit'));
+        } else {
           userInput.value = '';
         }
       });
@@ -411,9 +429,11 @@
         alert('🎤 음성 인식 오류: ' + e.error);
         micBtn.disabled = false;
         micBtn.textContent = '🎤';
-        userInput.classList.remove('listening');  // ✅ 깜빡임 종료
-        userInput.disabled = false; // ✅ 오류 시도 입력창 다시 활성화
+        userInput.classList.remove('listening');
+        userInput.disabled = false;
+        isListening = false;
       });
+
     } else {
       micBtn.disabled = true;
       micBtn.title = "브라우저에서 음성 인식을 지원하지 않습니다";
