@@ -134,6 +134,20 @@
     #userInput.listening {
       animation: blinkInput 1s infinite;
     }
+
+    .bubble-container {
+      display: flex;
+      align-items: flex-start; /* 음성/복사 버튼 위아래로 정렬할 때 top 정렬이 자연스러움 */
+      margin: 8px 0;
+      gap: 8px; /* 말풍선과 버튼 그룹 간 간격 */
+    }
+
+    .button-column {
+      display: flex;
+      flex-direction: column;
+      gap: 6px; /* 버튼들 사이 간격 */
+    }
+
     
   </style>
 </head>
@@ -222,12 +236,16 @@
       speakBtn.textContent = '📢 음성';
       speakBtn.onclick = () => speakText(text);
 
+      const btnColumn = document.createElement('div');
+      btnColumn.className = 'button-column';
+      btnColumn.appendChild(speakBtn);
+      btnColumn.appendChild(copyBtn);
+
       if (sender === 'user') {
         container.appendChild(bubble);
       } else {
         container.appendChild(bubble);
-        container.appendChild(speakBtn);
-        container.appendChild(copyBtn);
+        container.appendChild(btnColumn);
       }
 
       chat.appendChild(container);
