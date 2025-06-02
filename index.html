@@ -17,18 +17,15 @@
     }
 
     #chatbox {
-      width: 100vw; /* 수정: 화면 전체 너비 */
+      width: 100vw;
       max-width: 600px;
       height: 100vh;
       display: flex;
       flex-direction: column;
       justify-content: space-between;
       background: white;
-      padding: 10px; /* 수정: 여백 줄임 */
+      padding: 10px;
       box-sizing: border-box;
-      border-radius: 0;
-      box-shadow: none;
-      margin: 0 auto;
     }
 
     #chat {
@@ -66,7 +63,7 @@
 
     #inputForm {
       display: flex;
-      gap: 10px;
+      gap: 8px;
     }
 
     #userInput {
@@ -75,7 +72,6 @@
       border: 1px solid #ccc;
       border-radius: 8px;
       font-size: 0.9em;
-      font-family: 'Arial', sans-serif;
       line-height: 1.4;
       resize: none;
       overflow-y: auto;
@@ -84,28 +80,34 @@
       height: auto;
     }
 
-    @media (max-width: 768px) {
-      #userInput {
-        min-height: 40px;
-        max-height: 75px;
-      }
-    }
-
     button {
       padding: 8px 12px;
       border: none;
       border-radius: 8px;
-      background: #0078d7;
-      color: white;
       cursor: pointer;
     }
 
-    button:hover {
+    button[type="submit"] {
+      background: #0078d7;
+      color: white;
+    }
+
+    button[type="submit"]:hover {
       background: #005fa3;
+    }
+
+    #micBtn {
+      background: #28a745;
+      color: white;
+    }
+
+    #micBtn:hover {
+      background: #1e7e34;
     }
 
     .reset-btn {
       background: #888;
+      color: white;
     }
 
     .reset-btn:hover {
@@ -129,14 +131,6 @@
       background: #eee;
     }
 
-    .user-container {
-      justify-content: flex-end;
-    }
-
-    .ai-container {
-      justify-content: flex-start;
-    }
-
     .button-row {
       display: flex;
       justify-content: space-between;
@@ -156,8 +150,9 @@
   <div id="chatbox">
     <div id="chat"></div>
     <form id="inputForm">
+      <button type="button" id="micBtn" title="음성 입력">🎤</button>
       <textarea id="userInput" rows="1" enterkeyhint="newline"></textarea>
-      <button type="submit">보내기</button>
+      <button type="submit" title="보내기">✉️</button>
     </form>
     <div class="button-row">
       <button class="reset-btn small-btn" onclick="location.reload()">🔄 대화 초기화</button>
@@ -169,12 +164,12 @@
     const chat = document.getElementById('chat');
     const form = document.getElementById('inputForm');
     const userInput = document.getElementById('userInput');
+    const micBtn = document.getElementById('micBtn');
 
     const messages = [
       { role: "system", content: "너는 ..(생략)." }
     ];
 
-    // 초기 메시지
     window.addEventListener('DOMContentLoaded', () => {
       const welcome = "안녕하세요, 똑똑한 AI 건강 상담사 톡톡케어입니다. 현재 가장 불편한 증상 또는 궁금한 건강지식을 입력해주세요.";
       appendBubble(welcome, 'ai');
@@ -273,9 +268,45 @@
 
       copyToClipboard(allMessages.trim());
     }
+
+    // 🎤 음성 인식 기능
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    const recognition = SpeechRecognition ? new SpeechRecognition() : null;
+
+    if (recognition) {
+      recognition.lang = 'ko-KR';
+      recognition.interimResults = false;
+      recognition.maxAlternatives = 1;
+
+      micBtn.addEventListener('click', () => {
+        micBtn.disabled = true;
+        micBtn.textContent = '🎙️';
+        recognition.start();
+      });
+
+      recognition.addEventListener('result', (event) => {
+        const transcript = event.results[0][0].transcript;
+        userInput.value = transcript;
+        form.dispatchEvent(new Event('submit'));
+      });
+
+      recognition.addEventListener('end', () => {
+        micBtn.disabled = false;
+        micBtn.textContent = '🎤';
+      });
+
+      recognition.addEventListener('error', (e) => {
+        alert('🎤 음성 인식 오류: ' + e.error);
+        micBtn.disabled = false;
+        micBtn.textContent = '🎤';
+      });
+    } else {
+      micBtn.disabled = true;
+      micBtn.title = "브라우저에서 음성 인식을 지원하지 않습니다";
+    }
   </script>
 
-  <!-- 관리자 페이지 -->
+  <!-- 관리자 기능 -->
   <button onclick="openAdmin()" style="display:none;" id="adminBtn">📊 관리자 페이지</button>
   <script>
     async function openAdmin() {
@@ -295,7 +326,7 @@
     fetch('https://talktalkcare-server.onrender.com/view');
   </script>
 
-  <!-- 입력창 자동 높이 조절 -->
+  <!-- 입력창 높이 자동 조절 -->
   <script>
     document.addEventListener('DOMContentLoaded', () => {
       const isMobile = /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent);
