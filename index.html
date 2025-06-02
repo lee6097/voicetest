@@ -311,7 +311,7 @@
         const label = isUser ? '사용자' : '톡톡케어';
         const text = bubble.innerText.trim();
 
-        allMessages += ${label}: ${text}\n\n;
+        allMessages += '${label}: ${text}\n\n';
       }
 
       copyToClipboard(allMessages.trim());
