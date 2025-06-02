@@ -261,8 +261,7 @@
       document.body.removeChild(temp);
     }
 
-    let currentSpeakingBtn = null; // 현재 재생 중 버튼
-    let currentUtterances = [];    // 현재 재생 중 문장들
+    let currentSpeakingBtn = null;
 
     function speakText(rawText, button) {
       if (!('speechSynthesis' in window)) {
@@ -270,29 +269,29 @@
         return;
       }
 
-      // 동일 버튼 클릭 → 중지
+      // 같은 버튼을 다시 눌렀을 경우 → 재생 중지
       if (currentSpeakingBtn === button) {
         stopSpeech();
         return;
       }
 
-      // 다른 버튼이 재생 중 → 중지 후 버튼 복원
+      // 다른 버튼이 이미 재생 중이라면, 현재 재생 중지 후 버튼 복원
       if (currentSpeakingBtn) {
-        currentSpeakingBtn.textContent = '📢 음성';
-        stopSpeech();
+        resetSpeechState(); // 이전 버튼 상태 복원
+        window.speechSynthesis.cancel(); // 음성 중지
       }
 
-      // 버튼 상태 업데이트
-      button.textContent = '⏹️ 중지';
+      // 새 버튼 상태로 설정
       currentSpeakingBtn = button;
+      button.textContent = '⏹️ 중지';
 
-      // 텍스트 정제 및 문장 분리
+      // 텍스트 전처리
       const cleaned = rawText
         .replace(/\([^)]*\)/g, '')
         .replace(/[*#\-]/g, '')
         .trim();
-      const sentences = cleaned.split(/[\.\!\?]+[\s\n]+|\n+/).filter(s => s.trim().length > 0);
 
+      const sentences = cleaned.split(/[\.\!\?]+[\s\n]+|\n+/).filter(s => s.trim().length > 0);
       if (sentences.length === 0) {
         resetSpeechState();
         return;
@@ -304,26 +303,38 @@
         if (index >= sentences.length) {
           resetSpeechState();
           return;
-        }
+       }
 
         const utter = new SpeechSynthesisUtterance(sentences[index].trim());
-        utter.lang = 'ko-KR';
+       utter.lang = 'ko-KR';
 
         utter.onend = () => {
-          if (!window.speechSynthesis.speaking && !window.speechSynthesis.pending) {
-            index++;
-            speakNext();
-          }
+          index++;
+          speakNext();
         };
 
-        utter.onerror = () => resetSpeechState();
+        utter.onerror = () => {
+          resetSpeechState();
+        };
 
-        currentUtterances.push(utter);
         window.speechSynthesis.speak(utter);
       }
 
       speakNext();
     }
+
+    function stopSpeech() {
+      window.speechSynthesis.cancel(); // 음성 중지
+      resetSpeechState(); // 버튼 복원
+    }
+
+    function resetSpeechState() {
+      if (currentSpeakingBtn) {
+        currentSpeakingBtn.textContent = '📢 음성';
+        currentSpeakingBtn = null;
+      }
+    }
+
 
     function stopSpeech() {
       window.speechSynthesis.cancel();
