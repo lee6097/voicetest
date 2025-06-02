@@ -377,17 +377,18 @@
       recognition.maxAlternatives = 1;
 
       let isListening = false;
+      let userStopped = false;  // 사용자가 수동으로 중지했는지 여부
 
       micBtn.addEventListener('click', () => {
         if (!recognition) return;
 
-        // 🎤 시작 → 중지 요청
         if (isListening) {
-          recognition.stop(); // 인식 종료 → 아래의 'end' 이벤트에서 처리됨
+          userStopped = true;
+          recognition.stop();
           return;
         }
 
-        // 🎤 음성 인식 시작
+        userStopped = false;
         isListening = true;
         micBtn.disabled = false;
         micBtn.textContent = '⏹️';
@@ -405,34 +406,30 @@
         userInput.value = transcript;
 
         if (event.results[event.results.length - 1].isFinal) {
-          // 결과가 확정되었을 때도 submit 처리 (여기서 stop 호출 X)
-          form.dispatchEvent(new Event('submit'));
+          // 여기서는 전송하지 않고 사용자가 멈추거나 충분한 발화 후에 전송
         }
       });
 
       recognition.addEventListener('end', () => {
-        // 종료 시 상태 리셋 및 제출 처리
-        micBtn.disabled = false;
-        micBtn.textContent = '🎤';
-        userInput.classList.remove('listening');
-        userInput.disabled = false;
-        isListening = false;
+        if (!isListening) return;
 
-        if (userInput.value.trim() && userInput.value !== "🗣️ 음성을 입력하세요...") {
-          form.dispatchEvent(new Event('submit'));
+        if (userStopped) {
+          isListening = false;
+          micBtn.textContent = '🎤';
+          userInput.classList.remove('listening');
+          userInput.disabled = false;
+
+          if (userInput.value.trim() && userInput.value !== "🗣️ 음성을 입력하세요...") {
+            form.dispatchEvent(new Event('submit'));
+          } else {
+            userInput.value = '';
+          }
         } else {
-          userInput.value = '';
+          // 🔁 자동 재시작
+          recognition.start();
         }
       });
 
-      recognition.addEventListener('error', (e) => {
-        alert('🎤 음성 인식 오류: ' + e.error);
-        micBtn.disabled = false;
-        micBtn.textContent = '🎤';
-        userInput.classList.remove('listening');
-        userInput.disabled = false;
-        isListening = false;
-      });
 
     } else {
       micBtn.disabled = true;
