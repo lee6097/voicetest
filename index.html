@@ -145,6 +145,7 @@
 
     
   </style>
+
 </head>
 <body>
   <div id="chatbox">
@@ -152,7 +153,7 @@
     <form id="inputForm">
       <textarea id="userInput" rows="1" enterkeyhint="newline"></textarea>
       <button type="button" id="micBtn" title="음성 입력">🎤</button>
-      <button type="submit" title="보내기">✉️</button>
+      <button type="submit" id="sendBtn" title="보내기">✉️</button>
     </form>
     <div class="button-row">
       <button class="reset-btn small-btn" onclick="location.reload()">🔄 대화 초기화</button>
@@ -165,6 +166,7 @@
     const form = document.getElementById('inputForm');
     const userInput = document.getElementById('userInput');
     const micBtn = document.getElementById('micBtn');
+    const sendBtn = document.getElementById('sendBtn');
 
     const messages = [
       { role: "system", content: "너는 ..(생략)." }
@@ -269,25 +271,20 @@
         return;
       }
 
-      // 같은 버튼을 다시 눌렀을 경우 → 재생 중지
       if (currentSpeakingBtn === button) {
         stopSpeech();
         return;
       }
 
-      // 다른 버튼이 재생 중인 경우 → 현재 음성 중단 및 버튼 초기화
       if (currentSpeakingBtn) {
-        window.speechSynthesis.cancel(); // 음성 먼저 중단
-        resetSpeechState();              // 이전 버튼 복원
+        window.speechSynthesis.cancel();
+        resetSpeechState();
       }
 
-      // 약간의 지연 후 새 음성 재생 (브라우저 처리 시간 확보)
       setTimeout(() => {
-        // 새 버튼 상태로 설정
         currentSpeakingBtn = button;
         button.textContent = '⏹️ 중지';
 
-        // 텍스트 전처리
         const cleaned = rawText
           .replace(/\([^)]*\)/g, '')
           .replace(/[*#\-]/g, '')
@@ -317,7 +314,7 @@
             index++;
             speakNext();
           };
-    
+
           utter.onerror = () => {
             resetSpeechState();
           };
@@ -326,7 +323,7 @@
         }
 
         speakNext();
-      }, 100); // ⏳ 100ms 지연 후 실행 (브라우저 음성 중지 처리 시간 확보)
+      }, 100);
     }
 
     function stopSpeech() {
@@ -341,13 +338,9 @@
       }
     }
 
-
-
-
     window.addEventListener('beforeunload', () => {
       window.speechSynthesis.cancel();
     });
-    
 
     function copyAll() {
       let allMessages = '';
@@ -367,114 +360,98 @@
       copyToClipboard(allMessages.trim());
     }
 
-
     // 🎤 음성 인식
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     const recognition = SpeechRecognition ? new SpeechRecognition() : null;
 
-    const userInput = document.querySelector('#userInput');
-    const sendBtn = document.querySelector('#sendBtn');
-    const form = document.querySelector('form');
-  
-    if (recognition && micBtn && userInput && sendBtn && form) {
+    if (recognition) {
       recognition.lang = 'ko-KR';
-      recognition.continuous = true;         // 연속 인식
-      recognition.interimResults = true;     // 중간 결과 표시
+      recognition.interimResults = true;
       recognition.maxAlternatives = 1;
 
       let isListening = false;
-      let userStopped = false;
-      let finalTranscript = '';
 
       micBtn.addEventListener('click', () => {
+        if (!recognition) return;
+
         if (isListening) {
-          // ⏹️ 중지 요청
-          userStopped = true;
           recognition.stop();
           return;
         }
 
-        // 🎤 시작
-        userStopped = false;
         isListening = true;
-        finalTranscript = '';
-
-        micBtn.textContent = '⏹️';
         micBtn.disabled = false;
+        micBtn.textContent = '⏹️';
         userInput.value = "🗣️ 음성을 입력하세요...";
         userInput.classList.add('listening');
         userInput.disabled = true;
-        sendBtn.disabled = true;
-
-        try {
-          recognition.start();
-        } catch (e) {
-          console.error('음성 인식 시작 실패:', e);
-        }
+        sendBtn.disabled = true; // ✅ 메시지 전송 버튼 비활성화
+        recognition.start();
       });
 
       recognition.addEventListener('result', (event) => {
-        let interimTranscript = '';
+        let transcript = '';
         for (let i = event.resultIndex; i < event.results.length; ++i) {
-          const result = event.results[i];
-          if (result.isFinal) {
-            finalTranscript += result[0].transcript;
-          } else {
-            interimTranscript += result[0].transcript;
-          }
+          transcript += event.results[i][0].transcript;
         }
-        userInput.value = finalTranscript + interimTranscript;
+        userInput.value = transcript;
+        userInput.disabled = true;
+
+        if (event.results[event.results.length - 1].isFinal) {
+          form.dispatchEvent(new Event('submit'));
+        }
       });
 
       recognition.addEventListener('end', () => {
-        if (!isListening) return;
+        micBtn.disabled = false;
+        micBtn.textContent = '🎤';
+        userInput.classList.remove('listening');
+        userInput.disabled = false;
+        sendBtn.disabled = false; // ✅ 전송 버튼 다시 활성화
+        isListening = false;
 
-        if (userStopped) {
-          // 사용자가 명시적으로 중지한 경우
-          isListening = false;
-          micBtn.textContent = '🎤';
-          userInput.classList.remove('listening');
-          userInput.disabled = false;
-          sendBtn.disabled = false;
-
-          if (
-            userInput.value.trim() &&
-            userInput.value !== "🗣️ 음성을 입력하세요..."
-          ) {
-            form.dispatchEvent(new Event('submit'));
-          } else {
-            userInput.value = '';
-          }
+        if (userInput.value.trim() && userInput.value !== "🗣️ 음성을 입력하세요...") {
+          form.dispatchEvent(new Event('submit'));
         } else {
-          // 자동 재시작 (지연 추가)
-          setTimeout(() => {
-            try {
-              recognition.start();
-            } catch (e) {
-              console.error('자동 재시작 실패:', e);
-            }
-          }, 300); // 너무 빠르면 Chrome이 무시함
+          userInput.value = '';
         }
       });
 
       recognition.addEventListener('error', (e) => {
-        console.error('🎤 음성 인식 오류:', e.error);
-        isListening = false;
+        alert('🎤 음성 인식 오류: ' + e.error);
+        micBtn.disabled = false;
         micBtn.textContent = '🎤';
         userInput.classList.remove('listening');
         userInput.disabled = false;
         sendBtn.disabled = false;
+        isListening = false;
       });
 
     } else {
-      if (micBtn) {
-        micBtn.disabled = true;
-        micBtn.title = "브라우저에서 음성 인식을 지원하지 않습니다";
-      }
-      console.warn("음성 인식을 초기화할 수 없습니다. 필수 요소 또는 브라우저 지원을 확인하세요.");
+      micBtn.disabled = true;
+      micBtn.title = "브라우저에서 음성 인식을 지원하지 않습니다";
     }
-  </script>
 
+    // ⌨️ 엔터 키 처리
+    document.addEventListener('DOMContentLoaded', () => {
+      const isMobile = /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent);
+      userInput.addEventListener('keydown', function (e) {
+        if (!isMobile && e.key === 'Enter' && !e.shiftKey) {
+          e.preventDefault();
+          form.dispatchEvent(new Event('submit'));
+        }
+      });
+
+      userInput.addEventListener('input', () => {
+        userInput.style.height = 'auto';
+        const computed = window.getComputedStyle(userInput);
+        const maxHeight = parseFloat(computed.maxHeight);
+        const newHeight = Math.min(userInput.scrollHeight, maxHeight);
+        userInput.style.height = newHeight + 'px';
+        userInput.style.overflowY = userInput.scrollHeight > maxHeight ? 'auto' : 'hidden';
+      });
+    });
+  </script>
 
   <!-- 관리자 -->
   <button onclick="openAdmin()" style="display:none;" id="adminBtn">📊 관리자 페이지</button>
@@ -494,28 +471,6 @@
   <!-- 조회수 -->
   <script>
     fetch('https://talktalkcare-server.onrender.com/view');
-  </script>
-
-  <!-- 입력창 높이 조절 -->
-  <script>
-    document.addEventListener('DOMContentLoaded', () => {
-      const isMobile = /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent);
-      userInput.addEventListener('keydown', function (e) {
-        if (!isMobile && e.key === 'Enter' && !e.shiftKey) {
-          e.preventDefault();
-          form.dispatchEvent(new Event('submit'));
-        }
-      });
-
-      userInput.addEventListener('input', () => {
-        userInput.style.height = 'auto';
-        const computed = window.getComputedStyle(userInput);
-        const maxHeight = parseFloat(computed.maxHeight);
-        const newHeight = Math.min(userInput.scrollHeight, maxHeight);
-        userInput.style.height = newHeight + 'px';
-        userInput.style.overflowY = userInput.scrollHeight > maxHeight ? 'auto' : 'hidden';
-      });
-    });
   </script>
 </body>
 </html>
