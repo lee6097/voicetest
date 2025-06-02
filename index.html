@@ -212,7 +212,7 @@
 
     function appendBubble(text, sender) {
       const container = document.createElement('div');
-      container.className = 'bubble-container ${sender}-container';
+      container.className = bubble-container ${sender}-container;
 
       const bubble = document.createElement('div');
       bubble.className = bubble ${sender};
@@ -378,9 +378,6 @@
         userInput.value = transcript;
         userInput.classList.remove('listening');
         micBtn.textContent = '🎤';
-        if (transcript) {
-          form.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }));
-        }
       };
 
       micBtn.onclick = () => {
