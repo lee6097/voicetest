@@ -17,17 +17,18 @@
     }
 
     #chatbox {
-      width: 100%;
+      width: 100vw; /* 수정: 화면 전체 너비 */
       max-width: 600px;
       height: 100vh;
       display: flex;
       flex-direction: column;
       justify-content: space-between;
       background: white;
-      padding: 20px;
+      padding: 10px; /* 수정: 여백 줄임 */
       box-sizing: border-box;
       border-radius: 0;
       box-shadow: none;
+      margin: 0 auto;
     }
 
     #chat {
@@ -136,8 +137,18 @@
       justify-content: flex-start;
     }
 
-    .allcopy-btn {
+    .button-row {
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
       margin-top: 10px;
+    }
+
+    .small-btn {
+      font-size: 0.8em;
+      padding: 6px 10px;
+      flex: 1;
+      white-space: nowrap;
     }
   </style>
 </head>
@@ -148,8 +159,10 @@
       <textarea id="userInput" rows="1" enterkeyhint="newline"></textarea>
       <button type="submit">보내기</button>
     </form>
-    <button class="reset-btn" onclick="location.reload()">🔄 대화 초기화</button>
-    <button class="allcopy-btn" onclick="copyAll()">📝 전체 복사</button>
+    <div class="button-row">
+      <button class="reset-btn small-btn" onclick="location.reload()">🔄 대화 초기화</button>
+      <button class="allcopy-btn small-btn" onclick="copyAll()">📝 전체 복사</button>
+    </div>
   </div>
 
   <script>
@@ -161,7 +174,7 @@
       { role: "system", content: "너는 ..(생략)." }
     ];
 
-    // 🟢 초기 상담사 메시지 표시
+    // 초기 메시지
     window.addEventListener('DOMContentLoaded', () => {
       const welcome = "안녕하세요, 똑똑한 AI 건강 상담사 톡톡케어입니다. 현재 가장 불편한 증상 또는 궁금한 건강지식을 입력해주세요.";
       appendBubble(welcome, 'ai');
@@ -262,7 +275,7 @@
     }
   </script>
 
-  <!-- 관리자 통계 버튼 -->
+  <!-- 관리자 페이지 -->
   <button onclick="openAdmin()" style="display:none;" id="adminBtn">📊 관리자 페이지</button>
   <script>
     async function openAdmin() {
@@ -277,11 +290,12 @@
     }
   </script>
 
+  <!-- 조회수 증가 -->
   <script>
     fetch('https://talktalkcare-server.onrender.com/view');
   </script>
 
-  <!-- 자동 높이 조절 -->
+  <!-- 입력창 자동 높이 조절 -->
   <script>
     document.addEventListener('DOMContentLoaded', () => {
       const isMobile = /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent);
