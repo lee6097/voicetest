@@ -269,25 +269,32 @@
       copyToClipboard(allMessages.trim());
     }
 
-    // 🎤 음성 인식 기능
+    // 🎤 음성 인식 기능 (실시간 결과 반영 및 안내 메시지 포함)
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     const recognition = SpeechRecognition ? new SpeechRecognition() : null;
 
     if (recognition) {
       recognition.lang = 'ko-KR';
-      recognition.interimResults = false;
+      recognition.interimResults = true;
       recognition.maxAlternatives = 1;
 
       micBtn.addEventListener('click', () => {
         micBtn.disabled = true;
         micBtn.textContent = '🎙️';
+        userInput.value = "🗣️ 음성을 입력하세요...";
         recognition.start();
       });
 
       recognition.addEventListener('result', (event) => {
-        const transcript = event.results[0][0].transcript;
+        let transcript = '';
+        for (let i = event.resultIndex; i < event.results.length; ++i) {
+          transcript += event.results[i][0].transcript;
+        }
         userInput.value = transcript;
-        form.dispatchEvent(new Event('submit'));
+
+        if (event.results[event.results.length - 1].isFinal) {
+          form.dispatchEvent(new Event('submit'));
+        }
       });
 
       recognition.addEventListener('end', () => {
