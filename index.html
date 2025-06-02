@@ -261,54 +261,74 @@
       document.body.removeChild(temp);
     }
 
+    let currentSpeakingBtn = null; // 현재 재생 중인 버튼 저장
+
     function speakText(rawText, button) {
       if (!('speechSynthesis' in window)) {
         alert('🔈 음성 합성을 지원하지 않는 브라우저입니다.');
         return;
       }
 
-      // 기존 음성 중지
-      window.speechSynthesis.cancel();
+      // 이미 재생 중인데 같은 버튼을 또 누르면: 중단
+      if (currentSpeakingBtn === button) {
+        window.speechSynthesis.cancel();
+        button.textContent = '📢 음성';
+        currentSpeakingBtn = null;
+        return;
+      }
 
+      // 다른 버튼이 재생 중이면 중지시키고, 이전 버튼 텍스트 복원
+      if (currentSpeakingBtn) {
+        currentSpeakingBtn.textContent = '📢 음성';
+        window.speechSynthesis.cancel();
+      }
+
+      // 현재 버튼을 ⏹️로 표시
+      button.textContent = '⏹️ 중지';
+      currentSpeakingBtn = button;
+
+      // 텍스트 정제 및 문장 분할
       let cleaned = rawText
         .replace(/\([^)]*\)/g, '')
         .replace(/[*#\-]/g, '')
         .trim();
-
       const sentences = cleaned.split(/[\.\!\?]+[\s\n]+|\n+/).filter(s => s.trim().length > 0);
-      if (sentences.length === 0) return;
+
+      if (sentences.length === 0) {
+        button.textContent = '📢 음성';
+        currentSpeakingBtn = null;
+        return;
+      }
 
       let index = 0;
-      let isStopped = false;
-
-      // 버튼을 중지 버튼으로 변경
-      button.textContent = '⏹️ 중지';
-      button.onclick = () => {
-        window.speechSynthesis.cancel();
-        isStopped = true;
-        button.textContent = '📢 음성';
-        button.onclick = () => speakText(rawText, button);
-      };
 
       function speakNext() {
-        if (index >= sentences.length || isStopped) {
-          // 완료 후 버튼 되돌리기
+        if (index >= sentences.length) {
           button.textContent = '📢 음성';
-          button.onclick = () => speakText(rawText, button);
+          currentSpeakingBtn = null;
           return;
         }
 
         const utterance = new SpeechSynthesisUtterance(sentences[index].trim());
         utterance.lang = 'ko-KR';
+
         utterance.onend = () => {
+          if (window.speechSynthesis.speaking || window.speechSynthesis.pending) return;
           index++;
           speakNext();
         };
+
+        utterance.onerror = () => {
+          button.textContent = '📢 음성';
+          currentSpeakingBtn = null;
+        };
+
         window.speechSynthesis.speak(utterance);
       }
 
       speakNext();
     }
+
 
 
     window.addEventListener('beforeunload', () => {
