@@ -425,7 +425,8 @@
                     userInput.value = '';
                 }
             } else {
-                // 자동 종료된 경우: 다시 시작 (자연스러운 딜레이 없이 즉시 재시작)
+                // 자동 종료된 경우: 공백 추가 후 다시 시작
+                fullTranscript += ' ';
                 recognition.start();
             }
         });
@@ -444,6 +445,7 @@
         micBtn.disabled = true;
         micBtn.title = "브라우저에서 음성 인식을 지원하지 않습니다";
     }
+
 
 
 
