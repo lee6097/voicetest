@@ -402,8 +402,11 @@
                 transcript += event.results[i][0].transcript;
             }
 
-            fullTranscript += transcript;
-            userInput.value = fullTranscript;
+            if (event.results[event.results.length - 1].isFinal) {
+                fullTranscript += transcript;
+            }
+
+            userInput.value = fullTranscript + (!event.results[event.results.length - 1].isFinal ? transcript : '');
         });
 
         recognition.addEventListener('end', () => {
@@ -422,7 +425,7 @@
                     userInput.value = '';
                 }
             } else {
-                // 자동 종료된 경우: 다시 시작
+                // 자동 종료된 경우: 다시 시작 (자연스러운 딜레이 없이 즉시 재시작)
                 recognition.start();
             }
         });
@@ -441,6 +444,7 @@
         micBtn.disabled = true;
         micBtn.title = "브라우저에서 음성 인식을 지원하지 않습니다";
     }
+
 
 
     // ⌨️ 엔터 키 처리
