@@ -370,22 +370,29 @@
       recognition.maxAlternatives = 1;
 
       let isListening = false;
+      let isManuallyStopped = false;
+      let fullTranscript = '';
 
       micBtn.addEventListener('click', () => {
         if (!recognition) return;
 
         if (isListening) {
+          // 사용자가 수동으로 중단
+          isManuallyStopped = true;
           recognition.stop();
           return;
         }
 
+        // 음성 인식 시작
+        isManuallyStopped = false;
         isListening = true;
+        fullTranscript = '';
         micBtn.disabled = false;
         micBtn.textContent = '⏹️';
-        userInput.value = "🗣️ 음성을 입력하세요...";
+        userInput.value = '';
         userInput.classList.add('listening');
         userInput.disabled = true;
-        sendBtn.disabled = true; // ✅ 메시지 전송 버튼 비활성화
+        sendBtn.disabled = true;
         recognition.start();
       });
 
@@ -394,26 +401,29 @@
         for (let i = event.resultIndex; i < event.results.length; ++i) {
           transcript += event.results[i][0].transcript;
         }
-        userInput.value = transcript;
-        userInput.disabled = true;
 
-        if (event.results[event.results.length - 1].isFinal) {
-          form.dispatchEvent(new Event('submit'));
-        }
+        fullTranscript += transcript;
+        userInput.value = fullTranscript;
       });
 
       recognition.addEventListener('end', () => {
-        micBtn.disabled = false;
-        micBtn.textContent = '🎤';
-        userInput.classList.remove('listening');
-        userInput.disabled = false;
-        sendBtn.disabled = false; // ✅ 전송 버튼 다시 활성화
-        isListening = false;
+        if (isManuallyStopped) {
+          // 수동 중단이면 입력 전송
+          micBtn.disabled = false;
+          micBtn.textContent = '🎤';
+          userInput.classList.remove('listening');
+          userInput.disabled = false;
+          sendBtn.disabled = false;
+          isListening = false;
 
-        if (userInput.value.trim() && userInput.value !== "🗣️ 음성을 입력하세요...") {
-          form.dispatchEvent(new Event('submit'));
+          if (userInput.value.trim()) {
+            form.dispatchEvent(new Event('submit'));
+          } else {
+            userInput.value = '';
+          }
         } else {
-          userInput.value = '';
+          // 자동 종료된 경우: 다시 시작
+          recognition.start();
         }
       });
 
