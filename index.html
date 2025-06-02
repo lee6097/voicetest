@@ -150,8 +150,8 @@
   <div id="chatbox">
     <div id="chat"></div>
     <form id="inputForm">
-      <textarea id="userInput" rows="1" enterkeyhint="newline"></textarea>
       <button type="button" id="micBtn" title="음성 입력">🎤</button>
+      <textarea id="userInput" rows="1" enterkeyhint="newline"></textarea>
       <button type="submit" title="보내기">✉️</button>
     </form>
     <div class="button-row">
@@ -269,50 +269,42 @@
       copyToClipboard(allMessages.trim());
     }
 
-   // 🎤 음성 인식 기능
-   const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-   const recognition = SpeechRecognition ? new SpeechRecognition() : null;
+    // 🎤 음성 인식 기능
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    const recognition = SpeechRecognition ? new SpeechRecognition() : null;
 
-   if (recognition) {
-     recognition.lang = 'ko-KR';
-     recognition.interimResults = true; // ✅ 실시간 결과 표시
-     recognition.maxAlternatives = 1;
+    if (recognition) {
+      recognition.lang = 'ko-KR';
+      recognition.interimResults = false;
+      recognition.maxAlternatives = 1;
 
-     micBtn.addEventListener('click', () => {
-       micBtn.disabled = true;
-       micBtn.textContent = '🎙️';
-       userInput.value = "🗣️ 음성을 입력하세요..."; // ✅ 안내 메시지 표시
-       recognition.start();
-     });
+      micBtn.addEventListener('click', () => {
+        micBtn.disabled = true;
+        micBtn.textContent = '🎙️';
+        recognition.start();
+      });
 
-     recognition.addEventListener('result', (event) => {
-       let transcript = '';
-       for (let i = event.resultIndex; i < event.results.length; ++i) {
-         transcript += event.results[i][0].transcript;
-       }
+      recognition.addEventListener('result', (event) => {
+        const transcript = event.results[0][0].transcript;
+        userInput.value = transcript;
+        form.dispatchEvent(new Event('submit'));
+      });
 
-       userInput.value = transcript;
+      recognition.addEventListener('end', () => {
+        micBtn.disabled = false;
+        micBtn.textContent = '🎤';
+      });
 
-       if (event.results[event.results.length - 1].isFinal) {
-         form.dispatchEvent(new Event('submit'));
-       }
-     });
-
-     recognition.addEventListener('end', () => {
-       micBtn.disabled = false;
-       micBtn.textContent = '🎤';
-     });
-
-     recognition.addEventListener('error', (e) => {
-       alert('🎤 음성 인식 오류: ' + e.error);
-       micBtn.disabled = false;
-       micBtn.textContent = '🎤';
-     });
-   } else {
-     micBtn.disabled = true;
-     micBtn.title = "브라우저에서 음성 인식을 지원하지 않습니다";
-   }
-
+      recognition.addEventListener('error', (e) => {
+        alert('🎤 음성 인식 오류: ' + e.error);
+        micBtn.disabled = false;
+        micBtn.textContent = '🎤';
+      });
+    } else {
+      micBtn.disabled = true;
+      micBtn.title = "브라우저에서 음성 인식을 지원하지 않습니다";
+    }
+  </script>
 
   <!-- 관리자 기능 -->
   <button onclick="openAdmin()" style="display:none;" id="adminBtn">📊 관리자 페이지</button>
