@@ -125,6 +125,16 @@
       flex: 1;
       white-space: nowrap;
     }
+
+    @keyframes blinkInput {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+
+    #userInput.listening {
+      animation: blinkInput 1s infinite;
+    }
+    
   </style>
 </head>
 <body>
@@ -263,6 +273,7 @@
         micBtn.disabled = true;
         micBtn.textContent = '🎙️';
         userInput.value = "🗣️ 음성을 입력하세요...";
+        userInput.classList.add('listening');  // ✅ 깜빡임 시작
         recognition.start();
       });
 
@@ -281,6 +292,7 @@
       recognition.addEventListener('end', () => {
         micBtn.disabled = false;
         micBtn.textContent = '🎤';
+        userInput.classList.remove('listening');  // ✅ 깜빡임 종료
         if (userInput.value.trim() === "🗣️ 음성을 입력하세요...") {
           userInput.value = '';
         }
@@ -290,6 +302,7 @@
         alert('🎤 음성 인식 오류: ' + e.error);
         micBtn.disabled = false;
         micBtn.textContent = '🎤';
+        userInput.classList.remove('listening');  // ✅ 깜빡임 종료
       });
     } else {
       micBtn.disabled = true;
