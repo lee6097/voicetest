@@ -378,6 +378,9 @@
         userInput.value = transcript;
         userInput.classList.remove('listening');
         micBtn.textContent = '🎤';
+        if (transcript) {
+          form.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }));
+        }
       };
 
       micBtn.onclick = () => {
