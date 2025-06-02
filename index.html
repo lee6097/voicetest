@@ -366,7 +366,7 @@
 
     if (recognition) {
       recognition.lang = 'ko-KR';
-      recognition.interimResults = true;
+      recognition.interimResults = true; // 중간 결과 허용
       recognition.maxAlternatives = 1;
 
       let isListening = false;
@@ -377,7 +377,7 @@
         if (!recognition) return;
 
         if (isListening) {
-          // 사용자가 수동으로 중단
+          // 수동으로 중단한 경우
           isManuallyStopped = true;
           recognition.stop();
           return;
@@ -389,41 +389,48 @@
         fullTranscript = '';
         micBtn.disabled = false;
         micBtn.textContent = '⏹️';
-        userInput.value = '';
+        userInput.value = "🗣️ 음성을 입력하세요...";
         userInput.classList.add('listening');
         userInput.disabled = true;
         sendBtn.disabled = true;
+
         recognition.start();
       });
 
       recognition.addEventListener('result', (event) => {
+        // 가장 최근 결과만 사용하여 중복 방지
         let transcript = '';
         for (let i = event.resultIndex; i < event.results.length; ++i) {
           transcript += event.results[i][0].transcript;
         }
 
-        fullTranscript += transcript;
+        fullTranscript = transcript.trim();
         userInput.value = fullTranscript;
       });
 
       recognition.addEventListener('end', () => {
-        if (isManuallyStopped) {
-          // 수동 중단이면 입력 전송
-          micBtn.disabled = false;
-          micBtn.textContent = '🎤';
-          userInput.classList.remove('listening');
-          userInput.disabled = false;
-          sendBtn.disabled = false;
-          isListening = false;
+        micBtn.disabled = false;
+        micBtn.textContent = '🎤';
+        userInput.classList.remove('listening');
+        userInput.disabled = false;
+        sendBtn.disabled = false;
+        isListening = false;
 
-          if (userInput.value.trim()) {
+        if (isManuallyStopped) {
+          // 수동으로 종료했을 경우만 전송
+          if (userInput.value.trim() && userInput.value !== "🗣️ 음성을 입력하세요...") {
             form.dispatchEvent(new Event('submit'));
           } else {
             userInput.value = '';
           }
         } else {
-          // 자동 종료된 경우: 다시 시작
-          recognition.start();
+          // 사용자가 말이 느린 경우를 대비해 자동 재시작
+          setTimeout(() => {
+            if (!isManuallyStopped) {
+              recognition.start();
+              isListening = true;
+            }
+          }, 500); // ⏳ 짧은 재시작 딜레이 (자연스럽게 이어짐)
         }
       });
 
@@ -435,7 +442,7 @@
         userInput.disabled = false;
         sendBtn.disabled = false;
         isListening = false;
-      });
+     });
 
     } else {
       micBtn.disabled = true;
