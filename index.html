@@ -35,9 +35,8 @@
     }
     .bubble-container {
       display: flex;
-      align-items: flex-start; /* 음성/복사 버튼 위아래로 정렬할 때 top 정렬이 자연스러움 */
+      align-items: flex-end;
       margin: 8px 0;
-      gap: 8px; /* 말풍선과 버튼 그룹 간 간격 */
     }
     .bubble {
       padding: 10px 14px;
@@ -136,11 +135,20 @@
       animation: blinkInput 1s infinite;
     }
 
+    .bubble-container {
+      display: flex;
+      align-items: flex-start; /* 음성/복사 버튼 위아래로 정렬할 때 top 정렬이 자연스러움 */
+      margin: 8px 0;
+      gap: 8px; /* 말풍선과 버튼 그룹 간 간격 */
+    }
+
     .button-column {
       display: flex;
       flex-direction: column;
       gap: 6px; /* 버튼들 사이 간격 */
     }
+
+    
   </style>
 </head>
 <body>
@@ -212,10 +220,10 @@
 
     function appendBubble(text, sender) {
       const container = document.createElement('div');
-      container.className = 'bubble-container ${sender}-container';
+      container.className = `bubble-container ${sender}-container`;
 
       const bubble = document.createElement('div');
-      bubble.className = bubble ${sender};
+      bubble.className = `bubble ${sender}`;
       bubble.innerHTML = escapeHtml(text);
 
       const copyBtn = document.createElement('button');
@@ -226,7 +234,7 @@
       const speakBtn = document.createElement('button');
       speakBtn.className = 'copy-btn';
       speakBtn.textContent = '📢 음성';
-      speakBtn.onclick = () => toggleSpeak(speakBtn, text);
+      speakBtn.onclick = () => speakText(text);
 
       const btnColumn = document.createElement('div');
       btnColumn.className = 'button-column';
@@ -258,70 +266,43 @@
       document.body.removeChild(temp);
     }
 
-    // 전역 변수로 현재 읽고 있는 utterance와 상태 관리
-    let currentUtterance = null;
-    let isSpeaking = false;
-
-    function cleanTextForSpeech(rawText) {
-      return rawText
-        .replace(/\([^)]*\)/g, '') // 괄호 제거
-        .replace(/[*#\-]/g, '') // *, #, - 제거
-        .trim();
-    }
-
-    function toggleSpeak(button, rawText) {
+    function speakText(rawText) {
       if (!('speechSynthesis' in window)) {
         alert('🔈 음성 합성을 지원하지 않는 브라우저입니다.');
         return;
       }
 
-      if (isSpeaking) {
-        // 중지 요청
-        window.speechSynthesis.cancel();
-        isSpeaking = false;
-        currentUtterance = null;
-        button.textContent = '📢 음성';
-      } else {
-        // 재생 시작
-        const cleaned = cleanTextForSpeech(rawText);
-        if (!cleaned) return;
+      // 1. 괄호 제거, *, #, - 제거 (기존 유지)
+      let cleaned = rawText
+        .replace(/\([^)]*\)/g, '') // 괄호 제거
+        .replace(/[*#\-]/g, '') // *, #, - 제거
+        .trim();
 
-        // 문장 단위로 쪼갬
-        const sentences = cleaned.split(/[\.\!\?]+[\s\n]+|\n+/).filter(s => s.trim().length > 0);
-        if (sentences.length === 0) return;
+      // 2. 줄바꿈, 마침표, 느낌표, 물음표 기준으로 문장 쪼개기
+      //    줄바꿈 1개 이상 또는 문장부호+공백/줄바꿈 기준
+      const sentences = cleaned.split(/[\.\!\?]+[\s\n]+|\n+/).filter(s => s.trim().length > 0);
 
-        window.speechSynthesis.cancel(); // 기존 음성 취소
+      if (sentences.length === 0) return;
 
-        let index = 0;
-        isSpeaking = true;
-        button.textContent = '⏹️ 중지';
+      window.speechSynthesis.cancel(); // 기존 음성 취소
 
-        function speakNext() {
-          if (!isSpeaking || index >= sentences.length) {
-            // 끝나면 상태 초기화
-            isSpeaking = false;
-            currentUtterance = null;
-            button.textContent = '📢 음성';
-            return;
-          }
-          currentUtterance = new SpeechSynthesisUtterance(sentences[index].trim());
-          currentUtterance.lang = 'ko-KR';
-          currentUtterance.onend = () => {
-            index++;
-            speakNext();
-          };
-          currentUtterance.onerror = () => {
-            // 오류나도 중지 처리
-            isSpeaking = false;
-            currentUtterance = null;
-            button.textContent = '📢 음성';
-          };
-          window.speechSynthesis.speak(currentUtterance);
-        }
+      // 3. 문장별로 차례대로 읽기 위해 재귀 함수 사용
+      let index = 0;
 
-        speakNext();
+      function speakNext() {
+        if (index >= sentences.length) return;
+        const utterance = new SpeechSynthesisUtterance(sentences[index].trim());
+        utterance.lang = 'ko-KR';
+        utterance.onend = () => {
+          index++;
+          speakNext();
+        };
+        window.speechSynthesis.speak(utterance);
       }
+
+      speakNext();
     }
+
 
     function copyAll() {
       let allMessages = '';
@@ -335,7 +316,7 @@
         const label = isUser ? '사용자' : '톡톡케어';
         const text = bubble.innerText.trim();
 
-        allMessages += ${label}: ${text}\n\n;
+        allMessages += `${label}: ${text}\n\n`;
       }
 
       copyToClipboard(allMessages.trim());
@@ -347,65 +328,92 @@
 
     if (recognition) {
       recognition.lang = 'ko-KR';
-      recognition.interimResults = false;
-      recognition.continuous = false;
+      recognition.interimResults = true;
+      recognition.maxAlternatives = 1;
 
-      recognition.onstart = () => {
-        userInput.value = '🗣️ 음성을 입력하세요...';
-        userInput.classList.add('listening');
-        micBtn.textContent = '⏹️';
-      };
+      micBtn.addEventListener('click', () => {
+        micBtn.disabled = true;
+        micBtn.textContent = '🎙️';
+        userInput.value = "🗣️ 음성을 입력하세요...";
+        userInput.classList.add('listening');  // ✅ 깜빡임 시작
+        userInput.disabled = true; // ✅ 입력창 비활성화
+        recognition.start();
+      });
 
-      recognition.onend = () => {
-        userInput.classList.remove('listening');
-        micBtn.textContent = '🎤';
-        if (userInput.value === '🗣️ 음성을 입력하세요...') {
-          userInput.value = '';
+      recognition.addEventListener('result', (event) => {
+        let transcript = '';
+        for (let i = event.resultIndex; i < event.results.length; ++i) {
+          transcript += event.results[i][0].transcript;
         }
-      };
-
-      recognition.onerror = (event) => {
-        alert('음성 인식 중 오류가 발생했습니다: ' + event.error);
-        userInput.classList.remove('listening');
-        micBtn.textContent = '🎤';
-        if (userInput.value === '🗣️ 음성을 입력하세요...') {
-          userInput.value = '';
-        }
-      };
-
-      recognition.onresult = (event) => {
-        const transcript = event.results[0][0].transcript.trim();
         userInput.value = transcript;
-        userInput.classList.remove('listening');
-        micBtn.textContent = '🎤';
-      };
 
-      micBtn.onclick = () => {
-        if (micBtn.textContent === '🎤') {
-          recognition.start();
-        } else {
-          recognition.stop();
+        if (event.results[event.results.length - 1].isFinal) {
+          form.dispatchEvent(new Event('submit'));
         }
-      };
+      });
+
+      recognition.addEventListener('end', () => {
+        micBtn.disabled = false;
+        micBtn.textContent = '🎤';
+        userInput.classList.remove('listening');  // ✅ 깜빡임 종료
+        userInput.disabled = false; // ✅ 입력창 다시 활성화
+        if (userInput.value.trim() === "🗣️ 음성을 입력하세요...") {
+          userInput.value = '';
+        }
+      });
+
+      recognition.addEventListener('error', (e) => {
+        alert('🎤 음성 인식 오류: ' + e.error);
+        micBtn.disabled = false;
+        micBtn.textContent = '🎤';
+        userInput.classList.remove('listening');  // ✅ 깜빡임 종료
+        userInput.disabled = false; // ✅ 오류 시도 입력창 다시 활성화
+      });
     } else {
       micBtn.disabled = true;
-      micBtn.title = '이 브라우저는 음성 인식을 지원하지 않습니다.';
+      micBtn.title = "브라우저에서 음성 인식을 지원하지 않습니다";
     }
+  </script>
 
-    // 페이지 닫거나 새로고침 시 음성 자동 중지
-    window.addEventListener('beforeunload', () => {
-      if (isSpeaking) {
-        window.speechSynthesis.cancel();
+  <!-- 관리자 -->
+  <button onclick="openAdmin()" style="display:none;" id="adminBtn">📊 관리자 페이지</button>
+  <script>
+    async function openAdmin() {
+      const password = prompt("🔐 관리자 비밀번호를 입력하세요");
+      const res = await fetch(`https://talktalkcare-server.onrender.com/admin?password=${encodeURIComponent(password)}`);
+      if (res.ok) {
+        const data = await res.json();
+        alert(`📊 페이지 조회수: ${data.pageViews}\n💬 메시지 수: ${data.messageCount}`);
+      } else {
+        alert('❌ 비밀번호가 틀렸습니다.');
       }
-      if (recognition && recognition.abort) {
-        recognition.abort();
-      }
-    });
+    }
+  </script>
 
-    // 자동 높이 조절 (textarea)
-    userInput.addEventListener('input', () => {
-      userInput.style.height = 'auto';
-      userInput.style.height = (userInput.scrollHeight) + 'px';
+  <!-- 조회수 -->
+  <script>
+    fetch('https://talktalkcare-server.onrender.com/view');
+  </script>
+
+  <!-- 입력창 높이 조절 -->
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const isMobile = /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent);
+      userInput.addEventListener('keydown', function (e) {
+        if (!isMobile && e.key === 'Enter' && !e.shiftKey) {
+          e.preventDefault();
+          form.dispatchEvent(new Event('submit'));
+        }
+      });
+
+      userInput.addEventListener('input', () => {
+        userInput.style.height = 'auto';
+        const computed = window.getComputedStyle(userInput);
+        const maxHeight = parseFloat(computed.maxHeight);
+        const newHeight = Math.min(userInput.scrollHeight, maxHeight);
+        userInput.style.height = newHeight + 'px';
+        userInput.style.overflowY = userInput.scrollHeight > maxHeight ? 'auto' : 'hidden';
+      });
     });
   </script>
 </body>
