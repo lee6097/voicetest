@@ -1,576 +1,554 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-  <meta charset="UTF-8" />
-  <title>톡톡케어</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <style>
-    html, body {
-      margin: 0;
-      padding: 0;
-      height: 100%;
-      font-family: 'Arial', sans-serif;
-      background: #f5f5f5;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-    }
-    #chatbox {
-      width: 100vw;
-      max-width: 600px;
-      height: calc(var(--vh, 1vh) * 100);
-      display: flex;
-      flex-direction: column;
-      justify-content: space-between;
-      background: white;
-      padding: 10px;
-      box-sizing: border-box;
-    }
-    #chat {
-      display: flex;
-      flex-direction: column;
-      overflow-y: auto;
-      flex-grow: 1;
-      margin-bottom: 10px;
-    }
-    .bubble-container {
-      display: inline-flex;
-      align-items: flex-end;
-      margin: 8px 0;
-    }
-    .bubble {
-      padding: 10px 14px;
-      border-radius: 10px;
-      max-width: 65%;
-      word-wrap: break-word;
-      position: relative;
-    }
-    .user {
-      background: #d1e7ff;
-      align-self: flex-end;
-      margin-left: auto;
-    }
-    .ai {
-      background: #eee;
-      align-self: flex-start;
-      margin-right: 1px;
-    }
-    /* ✅ 수정: 말풍선 위치의 기준이 될 컨테이너 */
-    .input-container {
+  <meta charset="UTF-8" />
+  <title>톡톡케어</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      font-family: 'Arial', sans-serif;
+      background: #f5f5f5;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+    #chatbox {
+      width: 100vw;
+      max-width: 600px;
+      height: calc(var(--vh, 1vh) * 100);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      background: white;
+      padding: 10px;
+      box-sizing: border-box;
+    }
+    #chat {
+      display: flex;
+      flex-direction: column;
+      overflow-y: auto;
+      flex-grow: 1;
+      margin-bottom: 10px;
+    }
+    .bubble-container {
+      display: inline-flex;
+      align-items: flex-end;
+      margin: 8px 0;
+    }
+    .bubble {
+      padding: 10px 14px;
+      border-radius: 10px;
+      max-width: 65%;
+      word-wrap: break-word;
       position: relative;
     }
-    #inputForm {
-      display: flex;
-      gap: 8px;
-    }
-    #userInput {
-      flex: 1;
-      padding: 8px 10px;
-      border: 1px solid #ccc;
-      border-radius: 8px;
-      font-size: 0.9em;
-      line-height: 1.4;
-      resize: none;
-      overflow-y: auto;
-      min-height: 20px;
-      max-height: 60px;
-      height: auto;
-    }
-    button {
-      padding: 8px 12px;
-      border: none;
-      border-radius: 8px;
-      cursor: pointer;
-    }
-    button[type="submit"] {
-      background: #0078d7;
-      color: white;
-    }
-    button[type="submit"]:hover {
-      background: #005fa3;
-    }
-    #micBtn {
-      background: #28a745;
-      color: white;
-    }
-    #micBtn:hover {
-      background: #1e7e34;
-    }
-    .reset-btn {
-      background: #888;
-      color: white;
-    }
-    .reset-btn:hover {
-      background: #666;
-    }
-    .copy-btn {
-      font-size: 10px;
-      padding: 1px 4px;
-      background: transparent;
-      color: #666;
-      border: 1px solid #ccc;
-      border-radius: 4px;
-      cursor: pointer;
-      height: 20px;
-      margin: 0 4px;
-      flex-shrink: 0;
-    }
-    .copy-btn:hover {
-      background: #eee;
-    }
-    .button-row {
-      display: flex;
-      justify-content: space-between;
-      gap: 8px;
-      margin-top: 10px;
-    }
-    .small-btn {
-      font-size: 0.8em;
-      padding: 6px 10px;
-      flex: 1;
-      white-space: nowrap;
-    }
-    @keyframes blinkInput {
-      0%, 100% { opacity: 0.8; }
-      50% { opacity: 0.2; }
-    }
-    #userInput.listening {
-      animation: blinkInput 1s infinite;
-    }
-    .button-column {
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-      margin-left: 8px;
-    }
-    /* 음성 인식 팝업 스타일 */
-    #voice-popup {
-      display: none;
-      position: fixed;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      background-color: rgba(0, 0, 0, 0.75);
-      color: white;
-      padding: 25px 30px;
-      border-radius: 15px;
-      text-align: center;
-      z-index: 1000;
-      font-size: 1.1em;
-    }
-    #voice-popup div:first-child {
-      font-size: 2em;
-      margin-bottom: 10px;
-    }
-    /* 중지 버튼 안내 말풍선 스타일 */
-    #stop-tooltip {
-      display: none;
-      position: absolute;
-      bottom: 100%; /* ✅ 기준이 input-container 이므로, inputForm 바로 위에 위치하게 됨 */
-      right: 5px;
-      margin-bottom: 8px; /* 입력창과의 간격 */
-      background-color: #0078d7;
-      color: white;
-      padding: 8px 12px;
-      border-radius: 8px;
-      font-size: 0.9em;
-      white-space: nowrap;
-      z-index: 1001;
-    }
-    /* 말풍선 꼬리 만들기 */
-    #stop-tooltip::after {
-      content: '';
-      position: absolute;
-      top: 100%;
-      right: 50px;
-      margin-left: -5px;
-      border-width: 5px;
-      border-style: solid;
-      border-color: #0078d7 transparent transparent transparent;
-    }
-  </style>
-  <script>
-    function setVhUnit() {
-      const vh = window.innerHeight * 0.01;
-      document.documentElement.style.setProperty('--vh', `${vh}px`);
-    }
-    window.addEventListener('resize', setVhUnit);
-    window.addEventListener('load', setVhUnit);
-  </script>
+    .user {
+      background: #d1e7ff;
+      align-self: flex-end;
+      margin-left: auto;
+    }
+    .ai {
+      background: #eee;
+      align-self: flex-start;
+      margin-right: 1px;
+    }
+    #inputForm {
+      display: flex;
+      gap: 8px;
+    }
+    #userInput {
+      flex: 1;
+      padding: 8px 10px;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      font-size: 0.9em;
+      line-height: 1.4;
+      resize: none;
+      overflow-y: auto;
+      min-height: 20px;
+      max-height: 60px;
+      height: auto;
+    }
+    button {
+      padding: 8px 12px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+    button[type="submit"] {
+      background: #0078d7;
+      color: white;
+    }
+    button[type="submit"]:hover {
+      background: #005fa3;
+    }
+    #micBtn {
+      background: #28a745;
+      color: white;
+    }
+    #micBtn:hover {
+      background: #1e7e34;
+    }
+    .reset-btn {
+      background: #888;
+      color: white;
+    }
+    .reset-btn:hover {
+      background: #666;
+    }
+    .copy-btn {
+      font-size: 10px;
+      padding: 1px 4px;
+      background: transparent;
+      color: #666;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      cursor: pointer;
+      height: 20px;
+      margin: 0 4px;
+      flex-shrink: 0;
+    }
+    .copy-btn:hover {
+      background: #eee;
+    }
+    .button-row {
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      margin-top: 10px;
+    }
+    .small-btn {
+      font-size: 0.8em;
+      padding: 6px 10px;
+      flex: 1;
+      white-space: nowrap;
+    }
+    @keyframes blinkInput {
+      0%, 100% { opacity: 0.8; }
+      50% { opacity: 0.2; }
+    }
+    #userInput.listening {
+      animation: blinkInput 1s infinite;
+    }
+    .button-column {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin-left: 8px;
+    }
+
+    /* ✅ 음성 인식 팝업 */
+    #voicePopup {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: rgba(0,0,0,0.8);
+      color: white;
+      padding: 14px 20px;
+      border-radius: 12px;
+      font-size: 1em;
+      z-index: 9999;
+      display: none;
+      text-align: center;
+    }
+
+    /* ✅ 마이크 말풍선 */
+    #micTooltip {
+      position: absolute;
+      bottom: 100%;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #333;
+      color: white;
+      padding: 6px 10px;
+      border-radius: 6px;
+      font-size: 0.8em;
+      white-space: nowrap;
+      margin-bottom: 6px;
+      display: none;
+      z-index: 1000;
+    }
+    .mic-wrapper {
+      position: relative;
+      display: inline-block;
+    }
+  </style>
+
+  <script>
+    function setVhUnit() {
+      const vh = window.visualViewport ? window.visualViewport.height * 0.01 : window.innerHeight * 0.01;
+      document.documentElement.style.setProperty('--vh', `${vh}px`);
+    }
+    window.addEventListener('resize', setVhUnit);
+    window.addEventListener('load', setVhUnit);
+  </script>
 </head>
+
 <body>
-    <div id="voice-popup" style="display: none;">
-    <div>🎤</div>
-    <div>음성 인식이 진행중입니다...</div>
-  </div>
-
-  <div id="chatbox">
-    <div id="chat"></div>
-    <div class="input-container">
-      <form id="inputForm">
-        <textarea id="userInput" rows="1" enterkeyhint="newline"></textarea>
-        <button type="button" id="micBtn" title="음성 입력">🎤</button>
-        <button type="submit" id="sendBtn" title="보내기">✉️</button>
-      </form>
-      <div id="stop-tooltip" style="display: none;">
-        말씀하신 내용을 보내려면 버튼을 눌러주세요.
+  <div id="chatbox">
+    <div id="chat"></div>
+    <form id="inputForm">
+      <textarea id="userInput" rows="1" enterkeyhint="newline"></textarea>
+      <div class="mic-wrapper">
+        <div id="micTooltip">🛑 음성 종료 버튼을 눌러 메시지를 전송하세요</div>
+        <button type="button" id="micBtn" title="음성 입력">🎤</button>
       </div>
+      <button type="submit" id="sendBtn" title="보내기">✉️</button>
+    </form>
+    <div class="button-row">
+      <button class="reset-btn small-btn" onclick="location.reload()">🔄 대화 초기화</button>
+      <button class="allcopy-btn small-btn" onclick="copyAll()">📝 전체 복사</button>
     </div>
-    <div class="button-row">
-      <button class="reset-btn small-btn" onclick="location.reload()">🔄 대화 초기화</button>
-      <button class="allcopy-btn small-btn" onclick="copyAll()">📝 전체 복사</button>
-    </div>
-  </div>
+  </div>
 
-  <script>
-    const chat = document.getElementById('chat');
-    const form = document.getElementById('inputForm');
-    const userInput = document.getElementById('userInput');
-    const micBtn = document.getElementById('micBtn');
-    const sendBtn = document.getElementById('sendBtn');
-    const voicePopup = document.getElementById('voice-popup'); // ✅ 추가
-    const stopTooltip = document.getElementById('stop-tooltip'); // ✅ 추가
+  <!-- ✅ 음성 인식 중앙 팝업 -->
+  <div id="voicePopup">🎤 음성 인식이 진행 중입니다...</div>
 
-    const messages = [];
+  <script>
+    const chat = document.getElementById('chat');
+    const form = document.getElementById('inputForm');
+    const userInput = document.getElementById('userInput');
+    const micBtn = document.getElementById('micBtn');
+    const sendBtn = document.getElementById('sendBtn');
 
-    window.addEventListener('DOMContentLoaded', () => {
-      const welcome = "반갑습니다. 똑똑한 AI 건강 상담사 톡톡케어입니다. 현재 가장 불편한 증상 또는 궁금한 건강지식을 입력해주세요.\n\n※톡톡케어 건강상담은 전문적인 의학적 진단이나 처방을 대체할 수 없습니다. 중요한 건강 문제는 반드시 의사, 약사 등 전문가와 상담하시기 바랍니다.";
-      appendBubble(welcome, 'ai');
-    });
+    function showVoicePopup() {
+      document.getElementById('voicePopup').style.display = 'block';
+    }
+    function hideVoicePopup() {
+      document.getElementById('voicePopup').style.display = 'none';
+    }
+    function showMicTooltip() {
+      document.getElementById('micTooltip').style.display = 'block';
+    }
+    function hideMicTooltip() {
+      document.getElementById('micTooltip').style.display = 'none';
+    }
 
-    form.onsubmit = async (e) => {
-      e.preventDefault();
-      const text = userInput.value.trim();
-      if (!text || text === "🗣️ 음성을 입력하세요...") return;
+    const messages = [];
+    window.addEventListener('DOMContentLoaded', () => {
+      const welcome = "반갑습니다. 똑똑한 AI 건강 상담사 톡톡케어입니다. 현재 가장 불편한 증상 또는 궁금한 건강지식을 입력해주세요.\n\n※톡톡케어 건강상담은 전문적인 의학적 진단이나 처방을 대체할 수 없습니다. 중요한 건강 문제는 반드시 의사, 약사 등 전문가와 상담하시기 바랍니다.";
+      appendBubble(welcome, 'ai');
+    });
 
-      appendBubble(text, 'user');
-      messages.push({ role: 'user', content: text });
-      userInput.value = '';
-      userInput.disabled = true;
+    form.onsubmit = async (e) => {
+      e.preventDefault();
+      const text = userInput.value.trim();
+      if (!text || text === "🗣️ 음성을 입력하세요...") return;
 
-      appendBubble('⏳ 답변 작성 중... 최대 1분까지 소요될 수 있습니다.', 'ai');
+      appendBubble(text, 'user');
+      messages.push({ role: 'user', content: text });
+      userInput.value = '';
+      userInput.disabled = true;
 
-      try {
-        const res = await fetch('https://talktalkcare-server.onrender.com/chat', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ messages })
-        });
+      appendBubble('⏳ 톡톡케어가 답변을 준비하고 있어요. 잠시만 기다려주세요!', 'ai');
 
-        const data = await res.json();
-        removeLastBubble();
-        messages.push({ role: 'assistant', content: data.reply });
-        appendBubble(data.reply, 'ai');
-      } catch (err) {
-        removeLastBubble();
-        appendBubble('⚠️ 메시지 전송 중 오류가 발생했습니다.\n\n<해결방법>\n\n1) 1분 뒤 다시 시도해주세요.\n\n2) 네트워크 상태를 확인해주세요.\n\n3) 개발자에게 문의해주세요.', 'ai');
-      } finally {
-        userInput.disabled = false;
-        userInput.focus();
-      }
-    };
+      try {
+        const res = await fetch('https://talktalkcare-server.onrender.com/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ messages })
+        });
 
-    function escapeHtml(text) {
-      const div = document.createElement('div');
-      div.appendChild(document.createTextNode(text));
-      return div.innerHTML.replace(/\n/g, "<br>");
-    }
+        const data = await res.json();
+        removeLastBubble();
+        messages.push({ role: 'assistant', content: data.reply });
+        appendBubble(data.reply, 'ai');
+      } catch (err) {
+        removeLastBubble();
+        appendBubble('⚠️ 메시지 전송 중 오류가 발생했습니다.\n\n<해결방법>\n\n1) 1분 뒤 다시 시도해주세요.\n\n2) 네트워크 상태를 확인해주세요.\n\n3) 개발자에게 문의해주세요.', 'ai');
+      } finally {
+        userInput.disabled = false;
+        userInput.focus();
+      }
+    };
 
-    function appendBubble(text, sender) {
-      const container = document.createElement('div');
-      container.className = `bubble-container ${sender}-container`;
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.appendChild(document.createTextNode(text));
+      return div.innerHTML.replace(/\n/g, "<br>");
+    }
 
-      const bubble = document.createElement('div');
-      bubble.className = `bubble ${sender}`;
-      bubble.innerHTML = escapeHtml(text);
+    function appendBubble(text, sender) {
+      const container = document.createElement('div');
+      container.className = `bubble-container ${sender}-container`;
 
-      const copyBtn = document.createElement('button');
-      copyBtn.className = 'copy-btn';
-      copyBtn.textContent = '📋 복사';
-      copyBtn.onclick = () => copyToClipboard(text);
+      const bubble = document.createElement('div');
+      bubble.className = `bubble ${sender}`;
+      bubble.innerHTML = escapeHtml(text);
 
-      const speakBtn = document.createElement('button');
-      speakBtn.className = 'copy-btn';
-      speakBtn.textContent = '📢 음성';
-      speakBtn.onclick = () => speakText(text, speakBtn);
+      const copyBtn = document.createElement('button');
+      copyBtn.className = 'copy-btn';
+      copyBtn.textContent = '📋 복사';
+      copyBtn.onclick = () => copyToClipboard(text);
 
-      const btnColumn = document.createElement('div');
-      btnColumn.className = 'button-column';
-      btnColumn.appendChild(speakBtn);
-      btnColumn.appendChild(copyBtn);
+      const speakBtn = document.createElement('button');
+      speakBtn.className = 'copy-btn';
+      speakBtn.textContent = '📢 음성';
+      speakBtn.onclick = () => speakText(text, speakBtn);
 
-      if (sender === 'user') {
-        container.appendChild(bubble);
-      } else {
-        container.appendChild(bubble);
-        container.appendChild(btnColumn);
-      }
+      const btnColumn = document.createElement('div');
+      btnColumn.className = 'button-column';
+      btnColumn.appendChild(speakBtn);
+      btnColumn.appendChild(copyBtn);
 
-      chat.appendChild(container);
-      chat.scrollTop = chat.scrollHeight;
-    }
+      if (sender === 'user') {
+        container.appendChild(bubble);
+      } else {
+        container.appendChild(bubble);
+        container.appendChild(btnColumn);
+      }
 
-    function removeLastBubble() {
-      const last = chat.lastElementChild;
-      if (last) chat.removeChild(last);
-    }
+      chat.appendChild(container);
+      chat.scrollTop = chat.scrollHeight;
+    }
 
-    function copyToClipboard(text) {
-      const temp = document.createElement('textarea');
-      temp.value = text;
-      document.body.appendChild(temp);
-      temp.select();
-      document.execCommand('copy');
-      document.body.removeChild(temp);
-    }
+    function removeLastBubble() {
+      const last = chat.lastElementChild;
+      if (last) chat.removeChild(last);
+    }
 
-    let currentSpeakingBtn = null;
+    function copyToClipboard(text) {
+      const temp = document.createElement('textarea');
+      temp.value = text;
+      document.body.appendChild(temp);
+      temp.select();
+      document.execCommand('copy');
+      document.body.removeChild(temp);
+    }
 
-    function speakText(rawText, button) {
-      if (!('speechSynthesis' in window)) {
-        alert('🔈 음성 합성을 지원하지 않는 브라우저입니다.');
-        return;
-      }
+    let currentSpeakingBtn = null;
+    function speakText(rawText, button) {
+      if (!('speechSynthesis' in window)) {
+        alert('🔈 음성 합성을 지원하지 않는 브라우저입니다.');
+        return;
+      }
 
-      if (currentSpeakingBtn === button) {
-        stopSpeech();
-        return;
-      }
+      if (currentSpeakingBtn === button) {
+        stopSpeech();
+        return;
+      }
 
-      if (currentSpeakingBtn) {
-        window.speechSynthesis.cancel();
-        resetSpeechState();
-      }
+      if (currentSpeakingBtn) {
+        window.speechSynthesis.cancel();
+        resetSpeechState();
+      }
 
-      setTimeout(() => {
-        currentSpeakingBtn = button;
-        button.textContent = '⏹️ 중지';
+      setTimeout(() => {
+        currentSpeakingBtn = button;
+        button.textContent = '⏹️ 중지';
 
-        const cleaned = rawText
-          .replace(/\([^)]*\)/g, '')         
-          .replace(/[*#\-⚠️⏳]/g, '')         
-          .trim();                           
+        const cleaned = rawText
+          .replace(/\([^)]*\)/g, '')
+          .replace(/[*#\-⚠️⏳]/g, '')
+          .trim();
 
-        const sentences = cleaned
-          .split(/[\.\!\?]+[\s\n]+|\n+/)
-          .filter(s => s.trim().length > 0);
+        const sentences = cleaned
+          .split(/[\.\!\?]+[\s\n]+|\n+/)
+          .filter(s => s.trim().length > 0);
 
-        if (sentences.length === 0) {
-          resetSpeechState();
-          return;
-        }
+        if (sentences.length === 0) {
+          resetSpeechState();
+          return;
+        }
 
-        let index = 0;
+        let index = 0;
+        function speakNext() {
+          if (index >= sentences.length) {
+            resetSpeechState();
+            return;
+          }
 
-        function speakNext() {
-          if (index >= sentences.length) {
-            resetSpeechState();
-            return;
-          }
+          const utter = new SpeechSynthesisUtterance(sentences[index].trim());
+          utter.lang = 'ko-KR';
+          utter.onend = () => {
+            index++;
+            speakNext();
+          };
+          utter.onerror = () => resetSpeechState();
 
-          const utter = new SpeechSynthesisUtterance(sentences[index].trim());
-          utter.lang = 'ko-KR';
+          window.speechSynthesis.speak(utter);
+        }
 
-          utter.onend = () => {
-            index++;
-            speakNext();
-          };
+        speakNext();
+      }, 100);
+    }
 
-          utter.onerror = () => {
-            resetSpeechState();
-          };
+    function stopSpeech() {
+      window.speechSynthesis.cancel();
+      resetSpeechState();
+    }
 
-          window.speechSynthesis.speak(utter);
-        }
+    function resetSpeechState() {
+      if (currentSpeakingBtn) {
+        currentSpeakingBtn.textContent = '📢 음성';
+        currentSpeakingBtn = null;
+      }
+    }
 
-        speakNext();
-      }, 100);
-    }
+    window.addEventListener('beforeunload', () => {
+      window.speechSynthesis.cancel();
+    });
 
-    function stopSpeech() {
-      window.speechSynthesis.cancel();
-      resetSpeechState();
-    }
+    function copyAll() {
+      let allMessages = '';
+      const containers = document.getElementsByClassName('bubble-container');
+      for (let container of containers) {
+        const bubble = container.querySelector('.bubble');
+        if (!bubble) continue;
+        const isUser = bubble.classList.contains('user');
+        const label = isUser ? '사용자' : '톡톡케어';
+        const text = bubble.innerText.trim();
+        allMessages += `${label}: ${text}\n\n`;
+      }
+      copyToClipboard(allMessages.trim());
+    }
 
-    function resetSpeechState() {
-      if (currentSpeakingBtn) {
-        currentSpeakingBtn.textContent = '📢 음성';
-        currentSpeakingBtn = null;
-      }
-    }
+    // 🎤 음성 인식
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    const recognition = SpeechRecognition ? new SpeechRecognition() : null;
 
-    window.addEventListener('beforeunload', () => {
-      window.speechSynthesis.cancel();
-    });
+    if (recognition) {
+      recognition.lang = 'ko-KR';
+      recognition.interimResults = true;
+      recognition.maxAlternatives = 1;
 
-    function copyAll() {
-      let allMessages = '';
-      const containers = document.getElementsByClassName('bubble-container');
+      let isListening = false;
+      let isManuallyStopped = false;
+      let fullTranscript = '';
 
-      for (let container of containers) {
-        const bubble = container.querySelector('.bubble');
-        if (!bubble) continue;
+      micBtn.addEventListener('click', () => {
+        if (!recognition) return;
 
-        const isUser = bubble.classList.contains('user');
-        const label = isUser ? '사용자' : '톡톡케어';
-        const text = bubble.innerText.trim();
+        if (isListening) {
+          isManuallyStopped = true;
+          recognition.stop();
+          hideVoicePopup();
+          hideMicTooltip();
+          return;
+        }
 
-        allMessages += `${label}: ${text}\n\n`;
-      }
+        isManuallyStopped = false;
+        isListening = true;
+        fullTranscript = '';
+        micBtn.disabled = false;
+        micBtn.textContent = '⏹️';
+        userInput.value = '';
+        userInput.classList.add('listening');
+        userInput.disabled = true;
+        sendBtn.disabled = true;
 
-      copyToClipboard(allMessages.trim());
-    }
+        showVoicePopup();
+        showMicTooltip();
+        recognition.start();
+      });
 
-    // 🎤 음성 인식
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    const recognition = SpeechRecognition ? new SpeechRecognition() : null;
+      recognition.addEventListener('result', (event) => {
+        let transcript = '';
+        for (let i = event.resultIndex; i < event.results.length; ++i) {
+          transcript += event.results[i][0].transcript;
+        }
+        if (event.results[event.results.length - 1].isFinal) {
+          fullTranscript += transcript;
+        }
+        userInput.value = fullTranscript + (!event.results[event.results.length - 1].isFinal ? transcript : '');
+      });
 
-    if (recognition) {
-        recognition.lang = 'ko-KR';
-        recognition.interimResults = true;
-        recognition.maxAlternatives = 1;
+      recognition.addEventListener('end', () => {
+        hideVoicePopup();
+        hideMicTooltip();
+        if (isManuallyStopped) {
+          micBtn.disabled = false;
+          micBtn.textContent = '🎤';
+          userInput.classList.remove('listening');
+          userInput.disabled = false;
+          sendBtn.disabled = false;
+          isListening = false;
 
-        let isListening = false;
-        let isManuallyStopped = false;
-        let fullTranscript = '';
+          if (userInput.value.trim()) {
+            form.dispatchEvent(new Event('submit'));
+          } else {
+            userInput.value = '';
+          }
+        } else {
+          fullTranscript += ' ';
+          recognition.start();
+        }
+      });
 
-        micBtn.addEventListener('click', () => {
-            if (!recognition) return;
+      recognition.addEventListener('error', (e) => {
+        alert('🎤 음성 인식 오류: ' + e.error);
+        hideVoicePopup();
+        hideMicTooltip();
+        micBtn.disabled = false;
+        micBtn.textContent = '🎤';
+        userInput.classList.remove('listening');
+        userInput.disabled = false;
+        sendBtn.disabled = false;
+        isListening = false;
+      });
+    } else {
+      micBtn.disabled = true;
+      micBtn.title = "브라우저에서 음성 인식을 지원하지 않습니다";
+    }
 
-            if (isListening) {
-                // 사용자가 수동으로 중단
-                isManuallyStopped = true;
-                recognition.stop();
-                return;
-            }
+    document.addEventListener('DOMContentLoaded', () => {
+      const isMobile = /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent);
+      userInput.addEventListener('keydown', function (e) {
+        if (!isMobile && e.key === 'Enter' && !e.shiftKey) {
+          e.preventDefault();
+          form.dispatchEvent(new Event('submit'));
+        }
+      });
 
-            // 음성 인식 시작
-            isManuallyStopped = false;
-            isListening = true;
-            fullTranscript = '';
-            micBtn.disabled = false;
-            micBtn.textContent = '⏹️';
-            userInput.value = '';
-            userInput.classList.add('listening');
-            userInput.disabled = true;
-            sendBtn.disabled = true;
-            voicePopup.style.display = 'block'; // ✅ 추가: 팝업 보이기
-            stopTooltip.style.display = 'block'; // ✅ 추가: 말풍선 보이기
-            recognition.start();
-        });
+      userInput.addEventListener('input', () => {
+        userInput.style.height = 'auto';
+        const computed = window.getComputedStyle(userInput);
+        const maxHeight = parseFloat(computed.maxHeight);
+        const newHeight = Math.min(userInput.scrollHeight, maxHeight);
+        userInput.style.height = newHeight + 'px';
+        userInput.style.overflowY = userInput.scrollHeight > maxHeight ? 'auto' : 'hidden';
+      });
+    });
 
-        recognition.addEventListener('result', (event) => {
-            let transcript = '';
-            for (let i = event.resultIndex; i < event.results.length; ++i) {
-                transcript += event.results[i][0].transcript;
-            }
+  </script>
 
-            if (event.results[event.results.length - 1].isFinal) {
-                fullTranscript += transcript;
-            }
+  <!-- 관리자 -->
+  <button onclick="openAdmin()" style="display:none;" id="adminBtn">📊 관리자 페이지</button>
+  <script>
+    async function openAdmin() {
+      const password = prompt("🔐 관리자 비밀번호를 입력하세요");
+      const res = await fetch(https://talktalkcare-server.onrender.com/admin?password=${encodeURIComponent(password)});
+      if (res.ok) {
+        const data = await res.json();
+        alert(📊 페이지 조회수: ${data.pageViews}\n💬 메시지 수: ${data.messageCount});
+      } else {
+        alert('❌ 비밀번호가 틀렸습니다.');
+      }
+    }
+  </script>
 
-            userInput.value = fullTranscript + (!event.results[event.results.length - 1].isFinal ? transcript : '');
-        });
+  <!-- 조회수 -->
+  <script>
+    fetch('https://talktalkcare-server.onrender.com/view');
+  </script>
 
-        recognition.addEventListener('end', () => {
-            voicePopup.style.display = 'none'; // ✅ 추가: 팝업 숨기기
-            stopTooltip.style.display = 'none'; // ✅ 추가: 말풍선 숨기기
+  <script>
+    let isFormDirty = false;
 
-            if (isManuallyStopped) {
-                // 수동 중단이면 입력 전송
-                micBtn.disabled = false;
-                micBtn.textContent = '🎤';
-                userInput.classList.remove('listening');
-                userInput.disabled = false;
-                sendBtn.disabled = false;
-                isListening = false;
+    document.getElementById('userInput').addEventListener('input', () => {
+      isFormDirty = true;
+    });
 
-                if (userInput.value.trim()) {
-                    form.dispatchEvent(new Event('submit'));
-                } else {
-                    userInput.value = '';
-                }
-            } else {
-                // 자동 종료된 경우: 공백 추가 후 다시 시작
-                fullTranscript += ' ';
-                recognition.start();
-                // ✅ 자동 재시작 시에는 팝업과 말풍선을 다시 띄움
-                voicePopup.style.display = 'block';
-                stopTooltip.style.display = 'block';
-            }
-        });
-
-        recognition.addEventListener('error', (e) => {
-            alert('🎤 음성 인식 오류: ' + e.error);
-            voicePopup.style.display = 'none'; // ✅ 추가: 에러 시 팝업 숨기기
-            stopTooltip.style.display = 'none'; // ✅ 추가: 에러 시 말풍선 숨기기
-            micBtn.disabled = false;
-            micBtn.textContent = '🎤';
-            userInput.classList.remove('listening');
-            userInput.disabled = false;
-            sendBtn.disabled = false;
-            isListening = false;
-        });
-
-    } else {
-        micBtn.disabled = true;
-        micBtn.title = "브라우저에서 음성 인식을 지원하지 않습니다";
-    }
-
-    
-    // ⌨️ 엔터 키 처리
-    document.addEventListener('DOMContentLoaded', () => {
-      const isMobile = /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent);
-      userInput.addEventListener('keydown', function (e) {
-        if (!isMobile && e.key === 'Enter' && !e.shiftKey) {
-          e.preventDefault();
-          form.dispatchEvent(new Event('submit'));
-        }
-      });
-
-      userInput.addEventListener('input', () => {
-        userInput.style.height = 'auto';
-        const computed = window.getComputedStyle(userInput);
-        const maxHeight = parseFloat(computed.maxHeight);
-        const newHeight = Math.min(userInput.scrollHeight, maxHeight);
-        userInput.style.height = newHeight + 'px';
-        userInput.style.overflowY = userInput.scrollHeight > maxHeight ? 'auto' : 'hidden';
-      });
-    });
-  </script>
-
-    <button onclick="openAdmin()" style="display:none;" id="adminBtn">📊 관리자 페이지</button>
-  <script>
-    async function openAdmin() {
-      const password = prompt("🔐 관리자 비밀번호를 입력하세요");
-      const res = await fetch(`https://talktalkcare-server.onrender.com/admin?password=${encodeURIComponent(password)}`);
-      if (res.ok) {
-        const data = await res.json();
-        alert(`📊 페이지 조회수: ${data.pageViews}\n💬 메시지 수: ${data.messageCount}`);
-      } else {
-        alert('❌ 비밀번호가 틀렸습니다.');
-      }
-    }
-  </script>
-
-    <script>
-    fetch('https://talktalkcare-server.onrender.com/view');
-  </script>
-
-  <script>
-    let isFormDirty = false;
-
-    document.getElementById('userInput').addEventListener('input', () => {
-      isFormDirty = true;
-    });
-
-    window.addEventListener('beforeunload', function (e) {
-      if (isFormDirty) {
-        e.preventDefault();
-        e.returnValue = '';
-      }
-    });
-  </script>
+    window.addEventListener('beforeunload', function (e) {
+      if (isFormDirty) {
+        e.preventDefault();
+        e.returnValue = '';
+      }
+    });
+  </script>
 </body>
 </html>
-```
