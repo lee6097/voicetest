@@ -18,7 +18,7 @@
     #chatbox {
       width: 100vw;
       max-width: 600px;
-      height: calc(var(--vh, 1vh) * 100); /* 수정된 부분 */
+      height: calc(var(--vh, 1vh) * 100);
       display: flex;
       flex-direction: column;
       justify-content: space-between;
@@ -34,7 +34,7 @@
       margin-bottom: 10px;
     }
     .bubble-container {
-      display: inline-flex; /* ✅ block → inline-block처럼 동작 */
+      display: inline-flex;
       align-items: flex-end;
       margin: 8px 0;
     }
@@ -55,10 +55,13 @@
       align-self: flex-start;
       margin-right: 1px;
     }
+    /* ✅ 수정: 말풍선 위치의 기준이 될 컨테이너 */
+    .input-container {
+      position: relative;
+    }
     #inputForm {
       display: flex;
       gap: 8px;
-      position: relative; /* ✅ 추가: 말풍선 위치의 기준점 */
     }
     #userInput {
       flex: 1;
@@ -127,31 +130,27 @@
       flex: 1;
       white-space: nowrap;
     }
-
     @keyframes blinkInput {
       0%, 100% { opacity: 0.8; }
       50% { opacity: 0.2; }
     }
-
     #userInput.listening {
       animation: blinkInput 1s infinite;
     }
-
     .button-column {
       display: flex;
       flex-direction: column;
-      gap: 6px; /* 버튼들 사이 간격 */
+      gap: 6px;
       margin-left: 8px;
     }
-
-    /* ✅ 추가: 음성 인식 팝업 스타일 */
+    /* 음성 인식 팝업 스타일 */
     #voice-popup {
-      display: none; /* 평소에는 숨김 */
-      position: fixed; /* 화면 중앙에 고정 */
+      display: none;
+      position: fixed;
       top: 50%;
       left: 50%;
       transform: translate(-50%, -50%);
-      background-color: rgba(0, 0, 0, 0.75); /* 반투명 검은 배경 */
+      background-color: rgba(0, 0, 0, 0.75);
       color: white;
       padding: 25px 30px;
       border-radius: 15px;
@@ -160,39 +159,36 @@
       font-size: 1.1em;
     }
     #voice-popup div:first-child {
-      font-size: 2em; /* 마이크 아이콘 크기 */
+      font-size: 2em;
       margin-bottom: 10px;
     }
-
-    /* ✅ 추가: 중지 버튼 안내 말풍선 스타일 */
+    /* 중지 버튼 안내 말풍선 스타일 */
     #stop-tooltip {
-      display: none; /* 평소에는 숨김 */
-      position: absolute; /* inputForm 기준 절대 위치 */
-      bottom: 110%; /* 버튼 바로 위 */
-      right: 5px; /* 오른쪽 정렬 */
+      display: none;
+      position: absolute;
+      bottom: 100%; /* ✅ 기준이 input-container 이므로, inputForm 바로 위에 위치하게 됨 */
+      right: 5px;
+      margin-bottom: 8px; /* 입력창과의 간격 */
       background-color: #0078d7;
       color: white;
       padding: 8px 12px;
       border-radius: 8px;
       font-size: 0.9em;
-      white-space: nowrap; /* 줄바꿈 방지 */
+      white-space: nowrap;
       z-index: 1001;
     }
-
-    /* ✅ 추가: 말풍선 꼬리 만들기 */
+    /* 말풍선 꼬리 만들기 */
     #stop-tooltip::after {
       content: '';
       position: absolute;
       top: 100%;
-      right: 50px; /* 꼬리 위치 조절 */
+      right: 50px;
       margin-left: -5px;
       border-width: 5px;
       border-style: solid;
       border-color: #0078d7 transparent transparent transparent;
     }
-    
   </style>
-
   <script>
     function setVhUnit() {
       const vh = window.innerHeight * 0.01;
@@ -201,7 +197,6 @@
     window.addEventListener('resize', setVhUnit);
     window.addEventListener('load', setVhUnit);
   </script>
-
 </head>
 <body>
     <div id="voice-popup" style="display: none;">
@@ -211,14 +206,16 @@
 
   <div id="chatbox">
     <div id="chat"></div>
-    <form id="inputForm">
-      <textarea id="userInput" rows="1" enterkeyhint="newline"></textarea>
-      <button type="button" id="micBtn" title="음성 입력">🎤</button>
-      <button type="submit" id="sendBtn" title="보내기">✉️</button>
+    <div class="input-container">
+      <form id="inputForm">
+        <textarea id="userInput" rows="1" enterkeyhint="newline"></textarea>
+        <button type="button" id="micBtn" title="음성 입력">🎤</button>
+        <button type="submit" id="sendBtn" title="보내기">✉️</button>
+      </form>
       <div id="stop-tooltip" style="display: none;">
-        다 말씀하셨나요? 버튼을 눌러 전송해주세요.
+        말씀하신 내용을 보내려면 버튼을 눌러주세요.
       </div>
-    </form>
+    </div>
     <div class="button-row">
       <button class="reset-btn small-btn" onclick="location.reload()">🔄 대화 초기화</button>
       <button class="allcopy-btn small-btn" onclick="copyAll()">📝 전체 복사</button>
