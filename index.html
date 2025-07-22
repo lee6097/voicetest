@@ -133,7 +133,8 @@
       50% { opacity: 0.2; }
     }
 
-    #userInput.listening {
+    /* ✅ 수정된 부분: 깜빡임 효과의 대상을 #voice-popup으로 변경 */
+    #voice-popup.listening {
       animation: blinkInput 1s infinite;
     }
 
@@ -144,7 +145,6 @@
       margin-left: 8px;
     }
     
-    /* ✅ 수정된 부분: 중앙 팝업 스타일 */
     #voice-popup {
       position: absolute;
       top: 50%;
@@ -200,7 +200,7 @@
     const userInput = document.getElementById('userInput');
     const micBtn = document.getElementById('micBtn');
     const sendBtn = document.getElementById('sendBtn');
-    const voicePopup = document.getElementById('voice-popup'); // ✅ 팝업 요소 가져오기
+    const voicePopup = document.getElementById('voice-popup');
 
     const messages = [];
 
@@ -420,10 +420,10 @@
             micBtn.disabled = false;
             micBtn.textContent = '⏹️';
             userInput.value = '';
-            userInput.classList.add('listening');
             userInput.disabled = true;
             sendBtn.disabled = true;
-            voicePopup.style.display = 'block'; // ✅ 팝업 보이기
+            voicePopup.style.display = 'block';
+            voicePopup.classList.add('listening'); // ✅ 수정된 부분
             recognition.start();
         });
 
@@ -444,11 +444,11 @@
             if (isManuallyStopped) {
                 micBtn.disabled = false;
                 micBtn.textContent = '🎤';
-                userInput.classList.remove('listening');
                 userInput.disabled = false;
                 sendBtn.disabled = false;
                 isListening = false;
-                voicePopup.style.display = 'none'; // ✅ 팝업 숨기기
+                voicePopup.style.display = 'none';
+                voicePopup.classList.remove('listening'); // ✅ 수정된 부분
 
                 if (userInput.value.trim()) {
                     form.dispatchEvent(new Event('submit'));
@@ -465,11 +465,11 @@
             alert('🎤 음성 인식 오류: ' + e.error);
             micBtn.disabled = false;
             micBtn.textContent = '🎤';
-            userInput.classList.remove('listening');
             userInput.disabled = false;
             sendBtn.disabled = false;
             isListening = false;
-            voicePopup.style.display = 'none'; // ✅ 팝업 숨기기
+            voicePopup.style.display = 'none';
+            voicePopup.classList.remove('listening'); // ✅ 수정된 부분
         });
 
     } else {
