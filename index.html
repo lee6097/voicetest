@@ -18,14 +18,14 @@
     #chatbox {
       width: 100vw;
       max-width: 600px;
-      height: calc(var(--vh, 1vh) * 100); /* 수정된 부분 */
+      height: calc(var(--vh, 1vh) * 100);
       display: flex;
       flex-direction: column;
       justify-content: space-between;
       background: white;
       padding: 10px;
       box-sizing: border-box;
-      position: relative; /* ✅ 추가: 자식 요소의 absolute 포지셔닝 기준 */
+      position: relative; 
     }
     #chat {
       display: flex;
@@ -35,7 +35,7 @@
       margin-bottom: 10px;
     }
     .bubble-container {
-      display: inline-flex; /* ✅ block → inline-block처럼 동작 */
+      display: inline-flex;
       align-items: flex-end;
       margin: 8px 0;
     }
@@ -140,53 +140,28 @@
     .button-column {
       display: flex;
       flex-direction: column;
-      gap: 6px; /* 버튼들 사이 간격 */
+      gap: 6px; 
       margin-left: 8px;
     }
     
-    /* ✅ 1번 기능: 음성 인식 중 오버레이 CSS */
-    #voice-overlay {
+    /* ✅ 수정된 부분: 중앙 팝업 스타일 */
+    #voice-popup {
       position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: rgba(0, 0, 0, 0.6);
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%); /* 정중앙 배치 */
+      width: 80%;
+      max-width: 320px;
+      background: rgba(0, 0, 0, 0.75);
       color: white;
       display: none; /* 평소엔 숨김 */
-      justify-content: center;
-      align-items: center;
+      padding: 20px;
+      border-radius: 12px;
       text-align: center;
-      font-size: 1.2em;
+      font-size: 1em;
       line-height: 1.6;
       z-index: 10;
-    }
-
-    /* ✅ 2번 기능: 녹음 중지 안내 말풍선 CSS */
-    #mic-tooltip {
-      display: none; /* 평소엔 숨김 */
-      position: absolute;
-      bottom: 85px; /* 입력창과 버튼들 위로 위치 조정 */
-      right: 55px;  /* 마이크 버튼 위로 위치 조정 */
-      background-color: #333;
-      color: #fff;
-      padding: 8px 12px;
-      border-radius: 6px;
-      font-size: 0.8em;
-      white-space: nowrap;
-      z-index: 11;
-    }
-
-    /* 말풍선 꼬리 */
-    #mic-tooltip::after {
-      content: '';
-      position: absolute;
-      top: 100%;
-      left: 50%;
-      margin-left: -5px;
-      border-width: 5px;
-      border-style: solid;
-      border-color: #333 transparent transparent transparent;
+      pointer-events: none; /* 팝업 뒤로 클릭이 가능하도록 설정 */
     }
   </style>
 
@@ -204,11 +179,9 @@
   <div id="chatbox">
     <div id="chat"></div>
 
-    <div id="voice-overlay">
-        <div>🎤<br>음성 인식이 진행중입니다...</div>
+    <div id="voice-popup">
+        🎤<br>음성 인식이 진행중입니다.<br>말씀이 끝나셨다면 음성 버튼을<br>다시 눌러 메시지를 전송하세요.
     </div>
-    
-    <div id="mic-tooltip">음성 종료 버튼을 눌러 메시지를 전송하세요.</div>
 
     <form id="inputForm">
       <textarea id="userInput" rows="1" enterkeyhint="newline"></textarea>
@@ -227,8 +200,7 @@
     const userInput = document.getElementById('userInput');
     const micBtn = document.getElementById('micBtn');
     const sendBtn = document.getElementById('sendBtn');
-    const voiceOverlay = document.getElementById('voice-overlay'); // ✅ 오버레이 요소 가져오기
-    const micTooltip = document.getElementById('mic-tooltip');   // ✅ 말풍선 요소 가져오기
+    const voicePopup = document.getElementById('voice-popup'); // ✅ 팝업 요소 가져오기
 
     const messages = [];
 
@@ -437,13 +409,11 @@
             if (!recognition) return;
 
             if (isListening) {
-                // 사용자가 수동으로 중단
                 isManuallyStopped = true;
                 recognition.stop();
                 return;
             }
 
-            // 음성 인식 시작
             isManuallyStopped = false;
             isListening = true;
             fullTranscript = '';
@@ -453,8 +423,7 @@
             userInput.classList.add('listening');
             userInput.disabled = true;
             sendBtn.disabled = true;
-            voiceOverlay.style.display = 'flex'; // ✅ 오버레이 보이기
-            micTooltip.style.display = 'block';  // ✅ 말풍선 보이기
+            voicePopup.style.display = 'block'; // ✅ 팝업 보이기
             recognition.start();
         });
 
@@ -473,15 +442,13 @@
 
         recognition.addEventListener('end', () => {
             if (isManuallyStopped) {
-                // 수동 중단이면 UI 리셋 및 입력 전송
                 micBtn.disabled = false;
                 micBtn.textContent = '🎤';
                 userInput.classList.remove('listening');
                 userInput.disabled = false;
                 sendBtn.disabled = false;
                 isListening = false;
-                voiceOverlay.style.display = 'none'; // ✅ 오버레이 숨기기
-                micTooltip.style.display = 'none';   // ✅ 말풍선 숨기기
+                voicePopup.style.display = 'none'; // ✅ 팝업 숨기기
 
                 if (userInput.value.trim()) {
                     form.dispatchEvent(new Event('submit'));
@@ -489,7 +456,6 @@
                     userInput.value = '';
                 }
             } else {
-                // 자동 종료된 경우: 공백 추가 후 다시 시작
                 fullTranscript += ' ';
                 recognition.start();
             }
@@ -503,8 +469,7 @@
             userInput.disabled = false;
             sendBtn.disabled = false;
             isListening = false;
-            voiceOverlay.style.display = 'none'; // ✅ 오버레이 숨기기
-            micTooltip.style.display = 'none';   // ✅ 말풍선 숨기기
+            voicePopup.style.display = 'none'; // ✅ 팝업 숨기기
         });
 
     } else {
